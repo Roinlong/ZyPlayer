@@ -99,8 +99,8 @@ const getHistoryList = async () => {
 
   res.list.forEach(async (item) => {
     const { date, siteKey } = item;
-    const { name } = await sites.find({ key: siteKey });
-    item.siteName = name;
+    const res = await sites.find({ key: siteKey });
+    item.siteName = _.has(res, "name") ? res.name : '该源应该被删除了哦';
     console.log(item);
     const timeDiff = filterDate(date);
     let timeKey;
@@ -328,6 +328,10 @@ defineExpose({
                 bottom: 0px;
                 display: flex;
                 justify-content: center;
+                span {
+                  font-size: 12px;
+                  font-weight: bolder;
+                }
               }
             }
           }
