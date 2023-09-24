@@ -65,25 +65,32 @@
       </t-form-item>
       <t-form-item label="直播" name="iptv">
         <div class="iptv">
-          <t-space align="center">
-            <t-radio v-model="formData.iptvSkipIpv6" allow-uncheck>跳过ipv6</t-radio>
-            <span class="title" @click="checkIpv6">检查</span>
-            <t-radio v-model="formData.iptvStatus" allow-uncheck>延迟</t-radio>
-            <t-radio v-model="formData.iptvThumbnail" allow-uncheck>预览图</t-radio>
-            <span class="title" @click="isVisible.iptvThumbnail=true">说明</span>
-          </t-space>
-        </div>
-      </t-form-item>
-      <t-form-item label="节目单" name="epg">
-        <div class="epg">
-          <t-space align="center">
-            <t-input
-              v-model="formData.defaultIptvEpg"
-              label="默认EPG:"
-              placeholder="仅支持DIYP"
-              :style="{ width: '255px' }"
-            />
-            <span class="title" @click="reset('epg')">重置</span>
+          <t-space direction="vertical">
+            <t-space align="center">
+              <t-radio v-model="formData.iptvSkipIpv6" allow-uncheck>跳过ipv6</t-radio>
+              <span class="title" @click="checkIpv6">检查</span>
+              <t-radio v-model="formData.iptvStatus" allow-uncheck>延迟</t-radio>
+              <t-radio v-model="formData.iptvThumbnail" allow-uncheck>预览图</t-radio>
+              <span class="title" @click="isVisible.iptvThumbnail=true">说明</span>
+            </t-space>
+            <t-space align="center">
+              <t-input
+                v-model="formData.defaultIptvEpg"
+                label="默认节目:"
+                placeholder="仅支持DIYP"
+                :style="{ width: '255px' }"
+              />
+              <span class="title" @click="reset('epg')">重置</span>
+            </t-space>
+            <!-- <t-space align="center">
+              <t-input
+                v-model="formData.defaultIptvEpg"
+                label="默认台标:"
+                placeholder="仅支持DIYP"
+                :style="{ width: '255px' }"
+              />
+              <span class="title" @click="reset('epg')">重置</span>
+            </t-space> -->
           </t-space>
         </div>
       </t-form-item>
@@ -94,8 +101,9 @@
       </t-form-item>
       <t-form-item label="播放器" name="player">
         <div class="player">
-          <t-space direction="vertical">
+          <t-space  align="center">
             <t-select v-model="formData.broadcasterType" :options="PLAYER_OPTIONS" placeholder="请选择播放器" />
+            <span class="title" @click="isVisible.sniffer=true">嗅探</span>
           </t-space>
         </div>
       </t-form-item>
@@ -129,6 +137,7 @@
         <dialog-data-view v-model:visible="isVisible.data" :webdev="webdevDialogData"/>
         <dialog-update-view v-model:visible="isVisible.update" />
         <dialog-ffmpeg-caption-view v-model:visible="isVisible.iptvThumbnail" />
+        <dialog-sniffer-view v-model:visible="isVisible.sniffer" @receive-sniffer-data="flushDialogData"/>
       </t-form-item>
     </t-form>
   </div>
@@ -156,6 +165,7 @@ import DialogDataView from './components/DialogData.vue';
 import DialogUaView from './components/DialogUA.vue';
 import DialogUpdateView from './components/DialogUpdate.vue';
 import DialogFfmpegCaptionView from './components/DialogFfmpegCaption.vue';
+import DialogSnifferView from './components/DialogSniffer.vue';
 
 const ipcRenderer = useIpcRenderer();
 
@@ -169,7 +179,8 @@ const isVisible = reactive({
   update: false,
   dns: false,
   ua: false,
-  iptvThumbnail: false
+  iptvThumbnail: false,
+  sniffer: false
 });
 
 const dnsDialogData = ref({ data: '', type: 'dns' });
@@ -278,6 +289,7 @@ watchEffect(() => {
     storePlayer.updateConfig({
       setting: {
         broadcasterType: formData.value.broadcasterType,
+        snifferType: formData.value.snifferType,
       },
     });
   }
