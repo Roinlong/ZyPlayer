@@ -23,10 +23,24 @@
             <a href="https://github.com/flash168/Peach" target="_blank">c#版本</a>
           </div>
         </div>
-        <div class="membership-wrapper nav-sub-tab-member-info" @click="formDialogPrivacyPolicy=true">
-          <PenIcon />
-          <span class="member-name">免责声明</span>
-        </div>
+        <t-popup placement="right">
+          <template #content>
+            <div class="sponsor_main">
+              <div class="qrcode_title">请作者喝杯咖啡吧</div>
+              <div class="qrcode-container">
+                <div class="qrcode-arrow"></div>
+                <div class="qrcode_bg">
+                  <img src="@/assets/pay/qr.png" class="qrcode">
+                </div>
+                <p class="pay_desc">支付宝/微信扫码直接赞助</p>
+              </div>
+            </div>
+          </template>
+          <div class="membership-wrapper nav-sub-tab-member-info">
+            <MoneyIcon />
+            <span class="member-name">为爱发电</span>
+          </div>
+        </t-popup>
       </div>
     </div>
     <div class="content">
@@ -47,23 +61,25 @@
       </div>
     </div>
     </div>
-   <privacy-policy-view v-model:visible="formDialogPrivacyPolicy" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue';
+import { onMounted, computed, reactive, watch } from 'vue';
+import { useSettingStore } from '@/store';
 
-import { PenIcon } from 'tdesign-icons-vue-next';
+import { MoneyIcon } from 'tdesign-icons-vue-next';
 
 import analyzeView from './setting/analyze/AnalyzeSetting.vue';
 import baseView from './setting/base/BaseSetting.vue';
 import iptvView from './setting/iptv/IptvSetting.vue';
 import siteView from './setting/site/SiteSetting.vue';
 import driveView from './setting/drive/driveSetting.vue';
-import PrivacyPolicyView from '@/pages/PrivacyPolicy.vue';
 
-const formDialogPrivacyPolicy = ref(false);
+const storeSetting = useSettingStore();
+const sysConfigSwitch = computed(() => {
+  return storeSetting.getSysConfigSwitch;
+});
 
 const settingSet = reactive({
   select: 'configBase',
@@ -85,6 +101,18 @@ const settingSet = reactive({
       value: '网盘配置'
     }
   ]
+})
+
+if (storeSetting.getSysConfigSwitch) {
+  settingSet.select = storeSetting.getSysConfigSwitch;
+}
+
+watch(() => settingSet.select, (newValue) => {
+  storeSetting.updateConfig({ sysConfigSwitch: newValue });
+})
+
+watch(() => sysConfigSwitch.value, (newValue) => {
+  settingSet.select = newValue;
 })
 
 const changeClassEvent = (item) => {
@@ -287,6 +315,55 @@ const changeClassEvent = (item) => {
         position: relative;
         flex-grow: 1;
       }
+    }
+  }
+}
+
+.sponsor_main {
+  padding: 10px 0;
+  .qrcode_title {
+    text-align: center;
+    font-size: 16px;
+    font-weight: 700;
+    color: #cc9a45;
+    line-height: 20px;
+  }
+  .qrcode-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 4px;
+    .qrcode-arrow {
+      width: 0;
+      height: 0;
+      border-left: 4px solid transparent;
+      border-right: 4px solid transparent;
+      border-top: 6px solid #d9ac63;
+    }
+    .qrcode_bg {
+      width: 128px;
+      height: 128px;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-sizing: border-box;
+      margin-top: 6px;
+      padding: 6px;
+      background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAVYAAAFWCAMAAAAFcUWxAAAAM1BMVEUAAADarWParWPZpk3Nm0bOnEnNm0bMmkbNm0fMnEfRm0nZq1/UpVbZq2DSo1HOnUnMmkUrMTs8AAAAEHRSTlMAzGcK3fLGuWFaHHDf0J7VctKVegAAA0JJREFUeNrs1EtKQwEQRNGXqIPED+5/tXoXICEQxYJzBk2P76COzx88Hdz2/EM9WWX9f+7O+n7itpd7s76eue3FCOSPR+DgQWSNrBtkjawbZI2sG2SNrBtkjawbZI2sG2SNrBtkjawbZM1vZb1er++v14MHuXy8XS6XvtP54GHOp+8jq6wTZI2sG2SNrBtkjawbZI2sG2SNrBtkjawbZI2sG2SNrBtkjawbZI2sG2SNrBtkjawbZI2sG2SNrBtkjawbZI2sG2SNrBtkjawbZI2sG2SNrBtkjawbZI2sG2SNrBtkjawbZI2sG2SNrBtkjawbZI2sG2SNrBtkjawbZI2sG2SNrBtkjawbZI2sG2SNrBtkjawbZI2sG2SNrBtkjawbZI2sG2SNrBtkjawbZI2sG2SNrBtkjawbZI2sG2SNrBtkjawbZI2sG2SNrBtkjawbZI2sG2SNrBtkjawbZI2sG2SNrBtkjawbZI2sG2SNrBtkjawbZI2sG2SNrBtkjawbZI2sG2SNrBtkjawbZI2sG2SNrBtkjawbZI2sG2SNrBtkjawbZI2sG2SNrBtkjawbvtqpk5SGAgAKgnFKAor++59WG3EZgpDNg6oj9KJljawbZI2sG2SNrBtkjawbZI2sG2SNrBtkjawbZI2sG2SNrBtkjawbZI2sG2SNrBtkjawbZI2sG2SNrBtkjawbZI2sG2SNrBtkjawbZI2sG2SNrBtkjawbZI2sG2SNrBtkjawbZI2sG2SNrBtkjawbZI2sG2SNrBtkjawbZI2sG2SNrBtkjawbZI2sG2SNrBtkjawbZI2sG2SNrBtkjawbZI2sG2SNrBtkjawbZI2sG2SNrBtkjawbZI2sG2SNrBtkjawbZI2sG2SNrBtkjawbZI2sG2SNrBtkjawbZI2sG2SNrBtkjawbZI2sG2SNrBtkjawbZI2sG2SNrBtkjawbZI2sG2SNrBtkjawbZI2sG2SNrBtkjawbfrOez+e31/OJB7l+flyv19Nx5MSDHEdklXWBrJF1g6yRdYOskXWDrJF1g6yRdYOskXWDrJF1w1/WG15O3Hc5kuRO1vdn7vv6b9YncsfbkSQm8AAXWX/IuuFW1m+0r0yc66ZNywAAAABJRU5ErkJggg==) 50% no-repeat;
+      background-size: 100% 100%;
+      text-align: center;
+      margin: 0 auto;
+      .qrcode {
+        width: 100%;
+        height: 100%;
+      }
+    }
+    .pay_desc {
+      margin-top: 12px;
+      font-size: 12px;
+      line-height: 14px;
+      vertical-align: middle;
     }
   }
 }

@@ -16,7 +16,7 @@
         </div>
         <div class="right-operation-container">
           <div class="search">
-            <t-input v-model="searchValue" placeholder="搜索频道资源" clearable @enter="getIptv" class="search-bar">
+            <t-input v-model="searchValue" placeholder="搜索频道资源" clearable @enter="refreshEvent(true)" @clear="refreshEvent(true)" class="search-bar">
               <template #prefix-icon>
                 <search-icon size="16px" />
               </template>
@@ -30,7 +30,6 @@
       :data="data"
       :sort="sort"
       height="calc(100vh - 205px)"
-      table-layout="auto"
       :columns="COLUMNS"
       :hover="true"
       :pagination="pagination"
@@ -40,7 +39,7 @@
       @page-change="rehandlePageChange"
     >
       <template #name="{ row }">
-        <t-badge v-if="row.id === defaultIptv" size="small" :offset="[-5, 0]" count="默">{{ row.name }}</t-badge>
+        <t-badge v-if="row.id === defaultIptv" size="small" :offset="[0, 3]" count="默" dot>{{ row.name }}</t-badge>
         <span v-else>{{ row.name }}</span>
       </template>
       <template #type="{ row }">
@@ -54,22 +53,25 @@
         </t-switch>
       </template>
       <template #op="slotProps">
-        <a class="t-button-link" @click="defaultEvent(slotProps)">默认</a>
-        <a class="t-button-link" @click="editEvent(slotProps)">编辑</a>
-        <t-popconfirm content="确认删除吗" @confirm="removeEvent(slotProps)">
-          <a class="t-button-link">删除</a>
-        </t-popconfirm>
+        <t-space>
+          <t-link theme="primary" @click="defaultEvent(slotProps.row)">默认</t-link> 
+          <t-link theme="primary" @click="editEvent(slotProps)">编辑</t-link>
+          <t-popconfirm content="确认删除吗" @confirm="removeEvent(slotProps.row)">
+            <t-link theme="danger">删除</t-link>
+          </t-popconfirm>
+        </t-space>
       </template>
     </t-table>
 
-    <dialog-add-view v-model:visible="formDialogVisibleAddIptv" :data="data" @refresh-table-data="getIptv" />
+    <dialog-add-view v-model:visible="formDialogVisibleAddIptv" :data="data" @refresh-table-data="refreshEvent" />
     <dialog-edit-view v-model:visible="formDialogVisibleEditIptv" :data="rowEditData" />
   </div>
 </template>
+
 <script setup lang="ts">
 import { useEventBus } from '@vueuse/core';
 import _ from 'lodash';
-import { AddIcon, ArrowUpIcon, RemoveIcon, SearchIcon } from 'tdesign-icons-vue-next';
+import { AddIcon, RemoveIcon, SearchIcon } from 'tdesign-icons-vue-next';
 import { MessagePlugin } from 'tdesign-vue-next';
 import { onMounted, ref, reactive } from 'vue';
 
@@ -95,6 +97,8 @@ const pagination = reactive({
   defaultPageSize: 20,
   total: 0,
   defaultCurrent: 1,
+  pageSize: 20,
+  current: 1,
 });
 const selectedRowKeys = ref([]);
 const defaultIptv = ref();
@@ -107,8 +111,8 @@ const rehandleSelectChange = (val) => {
 };
 
 const rehandlePageChange = (curr) => {
-  pagination.defaultCurrent = curr.current;
-  pagination.defaultPageSize = curr.pageSize;
+  pagination.current = curr.current;
+  pagination.pageSize = curr.pageSize;
 };
 
 const rehandleSortChange = (sortVal, options) => {
@@ -133,10 +137,15 @@ onMounted(() => {
   getIptv();
 });
 
+const refreshEvent = (page = false) => {
+  getIptv();
+  if (page) pagination.current = 1;
+};
+
 const emitReload = useEventBus<string>('iptv-reload');
 
 const defaultEvent = async (row) => {
-  const { url, type } = row.row;
+  const { url, type } = row;
   let fileContent;
 
   try {
@@ -153,8 +162,8 @@ const defaultEvent = async (row) => {
       if (fileContent.trim().startsWith('#EXTM3U')) {
         m3u(fileContent);
       } else txt(fileContent);
-      setting.update({ defaultIptv: row.row.id });
-      defaultIptv.value = row.row.id;
+      setting.update({ defaultIptv: row.id });
+      defaultIptv.value = row.id;
     }
 
     MessagePlugin.success('设置成功');
@@ -228,7 +237,7 @@ const txt = (text) => {
 
 const editEvent = (row) => {
   rowEditData.value =
-    data.value[row.rowIndex + pagination.defaultPageSize * (pagination.defaultCurrent - 1)];
+    data.value[row.rowIndex + pagination.pageSize * (pagination.current - 1)];
   formDialogVisibleEditIptv.value = true;
 };
 
@@ -238,9 +247,9 @@ const propChangeEvent = (row) => {
 
 const removeEvent = (row) => {
   iptv
-    .remove(row.row.id)
+    .remove(row.id)
     .then(() => {
-      getIptv();
+      refreshEvent();
       MessagePlugin.success('删除成功');
     })
     .catch((error) => {
@@ -259,7 +268,7 @@ const removeAllEvent = () => {
       MessagePlugin.error(`批量删除源失败, 错误信息:${error}`);
     });
   });
-  getIptv();
+  refreshEvent();
   MessagePlugin.success('批量删除成功');
 };
 </script>
@@ -269,9 +278,6 @@ const removeAllEvent = () => {
   height: calc(100vh - var(--td-comp-size-l));
   .header {
     margin: var(--td-comp-margin-s) 0;
-  }
-  .t-button-link {
-    margin-right: var(--td-comp-margin-xxl);
   }
   .left-operation-container {
     .component-op {

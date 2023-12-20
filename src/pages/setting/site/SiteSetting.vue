@@ -20,7 +20,7 @@
         </div>
         <div class="right-operation-container">
           <div class="search">
-            <t-input v-model="searchValue" placeholder="搜索站点资源" clearable @enter="refreshEvent"  class="search-bar">
+            <t-input v-model="searchValue" placeholder="搜索站点资源" clearable @enter="refreshEvent(true)" @clear="refreshEvent(true)" class="search-bar">
               <template #prefix-icon>
                 <search-icon size="16px" />
               </template>
@@ -30,11 +30,11 @@
       </t-row>
     </div>
     <t-table
+      ref="tableRef"
       row-key="id"
       :data="data"
       :sort="sort"
       height="calc(100vh - 205px)"
-      table-layout="auto"
       :columns="COLUMNS"
       :hover="true"
       :pagination="pagination"
@@ -43,7 +43,7 @@
       @page-change="rehandlePageChange"
     >
       <template #name="{ row }">
-        <t-badge v-if="row.id === defaultSite" size="small" :offset="[-5, 0]" count="默">{{ row.name }}</t-badge>
+        <t-badge v-if="row.id === defaultSite" size="small" :offset="[0, 3]" count="默" dot>{{ row.name }}</t-badge>
         <span v-else>{{ row.name }}</span>
       </template>
       <template #isActive="{ row }">
@@ -61,12 +61,14 @@
         <t-tag v-else-if="row.search === 2" theme="warning" shape="round" variant="light-outline">本站</t-tag>
       </template>
       <template #op="slotProps">
-        <a class="t-button-link" @click="defaultEvent(slotProps.row)">默认</a>
-        <a class="t-button-link" @click="checkSingleEvent(slotProps.row)">检测</a>
-        <a class="t-button-link" @click="editEvent(slotProps)">编辑</a>
-        <t-popconfirm content="确认删除吗" @confirm="removeEvent(slotProps.row)">
-          <a class="t-button-link">删除</a>
-        </t-popconfirm>
+        <t-space>
+          <t-link theme="primary" @click="defaultEvent(slotProps.row)">默认</t-link>
+          <t-link theme="primary" @click="checkSingleEvent(slotProps.row)">检测</t-link>
+          <t-link theme="primary" @click="editEvent(slotProps)">编辑</t-link>
+          <t-popconfirm content="确认删除吗" @confirm="removeEvent(slotProps.row)">
+            <t-link theme="danger">删除</t-link>
+          </t-popconfirm>
+        </t-space>
       </template>
     </t-table>
     <dialog-add-view
@@ -83,9 +85,10 @@
     />
   </div>
 </template>
+
 <script setup lang="ts">
 import { useEventBus } from '@vueuse/core';
-import { AddIcon, ArrowUpIcon, RefreshIcon, RemoveIcon, SearchIcon } from 'tdesign-icons-vue-next';
+import { AddIcon, RefreshIcon, RemoveIcon, SearchIcon } from 'tdesign-icons-vue-next';
 import { MessagePlugin } from 'tdesign-vue-next';
 import { onMounted, ref, reactive } from 'vue';
 import _ from 'lodash';
@@ -96,8 +99,6 @@ import zy from '@/lib/utils/tools';
 import DialogAddView from './components/DialogAdd.vue';
 import DialogEditView from './components/DialogEdit.vue';
 import { COLUMNS } from './constants';
-
-const remote = window.require('@electron/remote');
 
 // Define item form data & dialog status
 const formDialogVisibleAddApi = ref(false);
@@ -112,7 +113,10 @@ const pagination = reactive({
   defaultPageSize: 20,
   total: 0,
   defaultCurrent: 1,
+  pageSize: 20,
+  current: 1,
 });
+const tableRef = ref(null);
 const data = ref([]);
 const selectedRowKeys = ref([]);
 const rehandleSelectChange = (val) => {
@@ -140,12 +144,14 @@ const getGroup = () => {
 };
 
 onMounted(() => {
-  refreshEvent();
-});
-
-const refreshEvent = () => {
   getSites();
   getGroup();
+});
+
+const refreshEvent = (page = false) => {
+  getSites();
+  getGroup();
+  if (page) pagination.current = 1;
 };
 
 // op
@@ -186,8 +192,8 @@ const checkSingleEvent = async (row, all = false) => {
 };
 
 const rehandlePageChange = (curr) => {
-  pagination.defaultCurrent = curr.current;
-  pagination.defaultPageSize = curr.pageSize;
+  pagination.current = curr.current;
+  pagination.pageSize = curr.pageSize;
 };
 
 const rehandleSortChange = (sortVal, options) => {
@@ -197,7 +203,7 @@ const rehandleSortChange = (sortVal, options) => {
 };
 
 const editEvent = (row) => {
-  formData.value = data.value[row.rowIndex + pagination.defaultPageSize * (pagination.defaultCurrent - 1)];
+  formData.value = data.value[row.rowIndex + pagination.pageSize * (pagination.current - 1)];
   formDialogVisibleEditSite.value = true;
 };
 
@@ -241,9 +247,6 @@ const defaultEvent = async (row) => {
   height: calc(100vh - var(--td-comp-size-l));
   .header {
     margin: var(--td-comp-margin-s) 0;
-  }
-  .t-button-link {
-    margin-right: var(--td-comp-margin-xxl);
   }
   .default-dot {
     display: inline-block;

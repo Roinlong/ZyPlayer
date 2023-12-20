@@ -10,7 +10,12 @@
           </li>
         </ul>
       </div>
-      <div class="nav-sub-tab-bottom"></div>
+      <div class="nav-sub-tab-bottom">
+        <div class="membership-wrapper nav-sub-tab-member-info" @click="gotoSetConfig">
+          <ArticleIcon />
+          <span class="member-name">前往配置</span>
+        </div>
+      </div>
     </div>
     <div class="content">
       <header class="header">
@@ -101,6 +106,8 @@
                     :style="{ width: '100%', height: '200px', background: 'none' }"
                     :lazy="true"
                     fit="cover"
+                    :loading="renderLoading"
+                    :error="renderError"
                   >
                     <template #overlayContent>
                       <div class="op">
@@ -142,19 +149,21 @@
     ></t-back-top>
   </div>
 </template>
-<script setup lang="ts">
+<script setup lang="tsx">
 import 'v3-infinite-loading/lib/style.css';
+import loadGif from '@/assets/loading.gif';
 
 import { useEventBus } from '@vueuse/core';
 import { useIpcRenderer } from '@vueuse/electron';
 import _ from 'lodash';
-import { MoreIcon, RootListIcon } from 'tdesign-icons-vue-next';
+import { ArticleIcon, MoreIcon, RootListIcon } from 'tdesign-icons-vue-next';
 import InfiniteLoading from 'v3-infinite-loading';
 import { onMounted, reactive, ref } from 'vue';
+import { useRouter } from 'vue-router';
 
 import { setting, sites } from '@/lib/dexie';
 import zy from '@/lib/utils/tools';
-import { usePlayStore } from '@/store';
+import { usePlayStore, useSettingStore } from '@/store';
 
 import HotView from './film/Hot.vue';
 import SearchView from './film/Search.vue';
@@ -162,6 +171,23 @@ import DetailView from './film/Detail.vue';
 
 const ipcRenderer = useIpcRenderer();
 const storePlayer = usePlayStore();
+const storeSetting = useSettingStore();
+const router = useRouter();
+
+const renderError = () => {
+  return (
+    <div class="renderIcon" style="width: 100%; height: 200px; overflow: hidden;">
+      <img src={ loadGif } style="width: 100%; height: 100%; object-fit: cover;"/>
+    </div>
+  );
+};
+const renderLoading = () => {
+  return (
+    <div class="renderIcon" style="width: 100%; height: 200px; overflow: hidden;">
+      <img src={ loadGif } style="width: 100%; height: 100%; object-fit: cover;"/>
+    </div>
+  );
+};
 
 const infiniteId = ref(+new Date()); // infinite-loading属性重置组件
 const searchTxt = ref(''); // 搜索框
@@ -655,6 +681,14 @@ eventBus.on(async () => {
 const formatMoreTitle = (item, list) => {
   return _.find(list, {type_name: item});
 }
+
+const gotoSetConfig = () =>{
+  router.push({
+    name: 'SettingIndex',
+  })
+  storeSetting.updateConfig({ sysConfigSwitch: 'siteSource' });
+  console.log(storeSetting.getSysConfigSwitch)
+}
 </script>
 
 <style lang="less" scoped>
@@ -676,8 +710,9 @@ const formatMoreTitle = (item, list) => {
     justify-content: space-between;
     height: 100%;
     z-index: 2;
-    overflow: auto;
     .nav-sub-tab-top {
+      overflow: auto;
+      width: 100%;
       .nav-menu {
         display: flex;
         flex-direction: column;
@@ -709,6 +744,30 @@ const formatMoreTitle = (item, list) => {
       align-items: center;
       flex-direction: column;
       padding-bottom: 20px;
+      a {
+        text-decoration: none;
+        color: inherit;
+      }
+      .membership-wrapper {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 40px;
+        width: 148px;
+        border: 2px solid rgba(132, 133, 141, 0.16);
+        transition: all .3s ease;
+        font-size: 14px;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 20px;
+        .member-name {
+          font-size: 12px;
+          margin-left: 4px;
+        }
+      }
+      .nav-sub-tab-member-info {
+        margin-top: 16px;
+      }
     }
   }
 

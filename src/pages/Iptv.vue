@@ -10,7 +10,12 @@
           </li>
         </ul>
       </div>
-      <div class="nav-sub-tab-bottom"></div>
+      <div class="nav-sub-tab-bottom">
+        <div class="membership-wrapper nav-sub-tab-member-info" @click="gotoSetConfig">
+          <ArticleIcon />
+          <span class="member-name">前往配置</span>
+        </div>
+      </div>
     </div>
     <div class="content">
       <header class="header">
@@ -77,8 +82,15 @@
                 <div class="card-main">
                   <t-image
                     class="card-main-item"
-                    :src="iptvSetting.iptvThumbnail? item.thumbnail: item.logo"
-                    :style="iptvSetting.iptvThumbnail? { width: '180px', height: '100px', background: 'none' }: { width: '60px', height: '30px', background: 'none' }"
+                    :src="iptvSetting.iptvThumbnail? item.thumbnail: generateLogo(item)"
+                    :style="{
+                      width: '180px',
+                      height: '100px',
+                      background: 'none',
+                      padding: iptvSetting.iptvThumbnail
+                        ? 'none'
+                        : '35px 60px'
+                    }"
                     :lazy="true"
                     :loading="renderLoading"
                     :error="renderError"
@@ -122,17 +134,19 @@
 <script setup lang="tsx">
 import '@imengyu/vue3-context-menu/lib/vue3-context-menu.css';
 import 'v3-infinite-loading/lib/style.css';
+import loadGif from '@/assets/loading.gif';
 
 import { ContextMenu, ContextMenuItem } from '@imengyu/vue3-context-menu';
 import { useClipboard, useEventBus } from '@vueuse/core';
 import { useIpcRenderer } from '@vueuse/electron';
 
-import _ from 'lodash';
+import _, { padEnd } from 'lodash';
 import PQueue from 'p-queue';
-import { Tv1Icon, LoadingIcon, MoreIcon, SearchIcon } from 'tdesign-icons-vue-next';
+import { ArticleIcon, MoreIcon, SearchIcon } from 'tdesign-icons-vue-next';
 import { MessagePlugin } from 'tdesign-vue-next';
 import InfiniteLoading from 'v3-infinite-loading';
 import { computed, onMounted, ref, reactive } from 'vue';
+import { useRouter } from 'vue-router';
 
 import { channelList, iptv, setting } from '@/lib/dexie';
 import zy from '@/lib/utils/tools';
@@ -146,18 +160,19 @@ const ipcRenderer = useIpcRenderer();
 
 const storePlayer = usePlayStore();
 const storeSetting = useSettingStore();
+const router = useRouter();
 
 const renderError = () => {
   return (
-    <div class="renderIcon">
-      <Tv1Icon size="1.5em" stroke-width="2" />
+    <div class="renderIcon" style="width: 100%; height: 100px; overflow: hidden;">
+      <img src={ loadGif } style="width: 100%; height: 100%; object-fit: cover;"/>
     </div>
   );
 };
 const renderLoading = () => {
   return (
-    <div class="renderIcon">
-      <LoadingIcon size="1.5em" stroke-width="2" />
+    <div class="renderIcon" style="width: 100%; height: 100px; overflow: hidden;">
+      <img src={ loadGif } style="width: 100%; height: 100%; object-fit: cover;"/>
     </div>
   );
 };
@@ -169,6 +184,7 @@ const isVisible = reactive({
 const iptvSetting = ref({
   name: '',
   epg: '' as string,
+  logo: '' as string,
   skipIpv6: false,
   iptvStatus: false,
   iptvThumbnail: false,
@@ -215,12 +231,13 @@ onMounted(() => {
 // 获取配置
 const getSetting = async () => {
   try {
-    const [defaultIptv, defaultIptvEpg, iptvSkipIpv6, iptvStatus, iptvThumbnail, iptvAll] = await Promise.all([
+    const [defaultIptv, defaultIptvEpg, iptvSkipIpv6, iptvStatus, iptvThumbnail, defaultIptvLogo, iptvAll] = await Promise.all([
       setting.get('defaultIptv'),
       setting.get('defaultIptvEpg'),
       setting.get('iptvSkipIpv6'),
       setting.get('iptvStatus'),
       setting.get('iptvThumbnail'),
+      setting.get('defaultIptvLogo'),
       iptv.all(),
     ]);
 
@@ -231,6 +248,7 @@ const getSetting = async () => {
         if (basic) {
           iptvSetting.value.name = basic.name;
           iptvSetting.value.epg = basic.epg || defaultIptvEpg;
+          iptvSetting.value.logo = defaultIptvLogo;
         }
       } catch {
         infiniteCompleteTip.value = '查无此id,请前往设置-直播源重新设置默认源!';
@@ -348,7 +366,6 @@ const playEvent = (item: { name: any }) => {
         ext: { epg, skipIpv6: iptvSetting.value.skipIpv6 },
       },
     });
-    console.log({ epg, skipIpv6: iptvSetting.value.skipIpv6 });
     ipcRenderer.send('openPlayWindow', item.name);
   }
 };
@@ -590,6 +607,22 @@ const copyChannelEvent = () => {
 const formatMoreTitle = (item, list) => {
   return _.find(list, {id: item});
 };
+
+const gotoSetConfig = () =>{
+  router.push({
+    name: 'SettingIndex',
+  })
+  storeSetting.updateConfig({ sysConfigSwitch: 'iptvSource' });
+}
+
+// 生成台标
+const generateLogo = (item) => {
+  let url = item.logo;
+  if (iptvSetting.value.logo) {
+    url = `${iptvSetting.value.logo}${item.name}.png`;
+  };
+  return url;
+}
 </script>
 
 <style lang="less" scoped>
@@ -611,8 +644,9 @@ const formatMoreTitle = (item, list) => {
     justify-content: space-between;
     height: 100%;
     z-index: 2;
-    overflow: auto;
     .nav-sub-tab-top {
+      overflow: auto;
+      width: 100%;
       .nav-menu {
         display: flex;
         flex-direction: column;
@@ -644,6 +678,30 @@ const formatMoreTitle = (item, list) => {
       align-items: center;
       flex-direction: column;
       padding-bottom: 20px;
+      a {
+        text-decoration: none;
+        color: inherit;
+      }
+      .membership-wrapper {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 40px;
+        width: 148px;
+        border: 2px solid rgba(132, 133, 141, 0.16);
+        transition: all .3s ease;
+        font-size: 14px;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 20px;
+        .member-name {
+          font-size: 12px;
+          margin-left: 4px;
+        }
+      }
+      .nav-sub-tab-member-info {
+        margin-top: 16px;
+      }
     }
   }
 
@@ -802,13 +860,18 @@ const formatMoreTitle = (item, list) => {
               }
               .card-footer {
                 .card-footer-title {
+                  backdrop-filter: saturate(180%) blur(20px);
+                  background-color: rgb(0 0 0 / 60%);
+                  border-radius: 4px;
+                  color: rgba(255, 255, 255, 0.8);
+                  font-size: 10px;
+                  box-shadow: var(--td-shadow-1);
                   z-index: 10;
                   position: absolute;
-                  right: 0;
-                  bottom: 0;
+                  right: 2px;
+                  bottom: 2px;
                   padding: 0 5px;
                   max-width: 90%;
-                  color: #fbfbfb;
                   font-weight: bold;
                   white-space: nowrap;
                   overflow: hidden;
@@ -853,14 +916,5 @@ const formatMoreTitle = (item, list) => {
       }
     }
   }
-}
-
-:deep(.renderIcon) {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  height: 100%;
-  color: rgba(255,255,255, 0.72);
 }
 </style>

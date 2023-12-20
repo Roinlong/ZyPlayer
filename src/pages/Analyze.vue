@@ -10,7 +10,12 @@
           </li>
         </ul>
       </div>
-      <div class="nav-sub-tab-bottom"></div>
+      <div class="nav-sub-tab-bottom">
+        <div class="membership-wrapper nav-sub-tab-member-info" @click="gotoSetConfig">
+          <ArticleIcon />
+          <span class="member-name">前往配置</span>
+        </div>
+      </div>
     </div>
     <div class="content">
       <header class="header">
@@ -90,10 +95,12 @@
 import { useEventBus } from '@vueuse/core';
 import _ from 'lodash';
 import moment from 'moment';
-import { CloseIcon, HistoryIcon, AppIcon } from 'tdesign-icons-vue-next';
+import { ArticleIcon, CloseIcon, HistoryIcon, AppIcon } from 'tdesign-icons-vue-next';
 import { MessagePlugin } from 'tdesign-vue-next';
 import { onMounted, ref, reactive } from 'vue';
+import { useRouter } from 'vue-router';
 
+import { useSettingStore } from '@/store';
 import { analyze, analyzeHistory, setting } from '@/lib/dexie';
 import zy from '@/lib/utils/tools';
 
@@ -102,6 +109,9 @@ import DialogIframemView from './analysis/DialogIframe.vue';
 import DialogPlatformView from './analysis/DialogPlatform.vue';
 import DialogSearchView from './analysis/DialogSearch.vue';
 import SharePopup from './common/SharePopup.vue';
+
+const storeSetting = useSettingStore();
+const router = useRouter();
 
 const isSupport = ref(false);
 const quickSearchType = ref('platform');
@@ -289,6 +299,13 @@ const changeDefaultEvent = async (item: any) => {
   selectAnalysisApi.value = item;
   if(analysisUrl.value) await getVideoInfo(analysisUrl.value, urlTitle.value);
 };
+
+const gotoSetConfig = () =>{
+  router.push({
+    name: 'SettingIndex',
+  })
+  storeSetting.updateConfig({ sysConfigSwitch: 'analyzeSource' });
+}
 </script>
 
 <style lang="less" scoped>
@@ -309,8 +326,9 @@ const changeDefaultEvent = async (item: any) => {
     justify-content: space-between;
     height: 100%;
     z-index: 2;
-    overflow: auto;
     .nav-sub-tab-top {
+      overflow: auto;
+      width: 100%;
       .nav-menu {
         display: flex;
         flex-direction: column;
@@ -342,6 +360,30 @@ const changeDefaultEvent = async (item: any) => {
       align-items: center;
       flex-direction: column;
       padding-bottom: 20px;
+      a {
+        text-decoration: none;
+        color: inherit;
+      }
+      .membership-wrapper {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 40px;
+        width: 148px;
+        border: 2px solid rgba(132, 133, 141, 0.16);
+        transition: all .3s ease;
+        font-size: 14px;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 20px;
+        .member-name {
+          font-size: 12px;
+          margin-left: 4px;
+        }
+      }
+      .nav-sub-tab-member-info {
+        margin-top: 16px;
+      }
     }
   }
   .no-warp {
