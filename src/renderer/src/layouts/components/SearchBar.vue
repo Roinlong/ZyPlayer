@@ -1,32 +1,22 @@
 <template>
   <div class="search-bar">
-    <!-- <t-input v-model="searchValue" placeholder="搜索全网资源" clearable
-        @enter="searchEvent"
-        @focus="focusEvent"
-        @clear="searchEvent"
-        class="search-bar"
-      >
-      <template #prefix-icon>
-        <search-icon size="16px" />
-      </template>
-    </t-input> -->
     <t-input-adornment style="height: 30px">
       <template #prepend>
         <t-select autoWidth v-model="active.type" class="search-select">
-          <t-option key="film" label="影视" value="film" />
-          <t-option key="iptv" label="电视" value="iptv" />
+          <t-option key="film" :label="$t('pages.search.film')" value="film" />
+          <t-option key="iptv" :label="$t('pages.search.iptv')" value="iptv" />
         </t-select>
       </template>
       <template #append>
-        <search-icon size="large"/>
+        <search-icon size="large" @click="searchEvent" style="cursor: pointer;"/>
       </template>
       <t-popup placement="bottom-right" :visible="isVisible.popup" :on-visible-change="popupVisibleEvent">
-        <t-input placeholder="搜索全网资源" class="search-input" :on-focus="focusEvent" v-model="searchValue" :on-enter="searchEvent"/>
+        <t-input :placeholder="$t('pages.search.searchPlaceholder')" class="search-input" :on-focus="focusEvent" v-model="searchValue" :on-enter="searchEvent"/>
         <template #content>
           <div class="search-content">
             <div class="history" v-show="searchList.length > 0">
               <div class="history-nav">
-                <div class="history-title">搜索历史</div>
+                <div class="history-title">{{ $t('pages.search.searchHistory') }}</div>
                 <div class="history-clear" @click.stop="clearSearchHistory">
                   <delete-icon />
                 </div>
@@ -61,7 +51,7 @@
                   <div v-else class="empty">
                     <div class="image" style="width: 200px" v-html="emptyImage"></div>
                     <div class="desc">
-                      <p>暂无近三天数据, 请查看其他分类!</p>
+                      <p>{{ $t('pages.search.hotNoData') }}</p>
                     </div>
                   </div>
                 </div>

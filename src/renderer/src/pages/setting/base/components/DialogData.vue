@@ -1,36 +1,36 @@
 <template>
-  <t-dialog v-model:visible="formVisible" header="数据" placement="center" :footer="false" >
+  <t-dialog v-model:visible="formVisible" :header="$t('pages.setting.data.title')" placement="center" :footer="false" >
     <template #body>
       <div class="data-dialog-container dialog-container-padding">
         <div class="data-item">
           <span class="separator"></span>
-          <p class="title">配置文件</p>
-          <p class="content">数据保存在数据库中, 为方便迁移可导出为json文件, 导入将覆盖原数据</p>
+          <p class="title">{{ $t('pages.setting.data.config') }}</p>
+          <p class="content">{{ $t('pages.setting.data.configTip') }}</p>
           <div class="config"> 
             <t-collapse expand-mutex>
-              <t-collapse-panel value="easyConfig" header="一键配置">
+              <t-collapse-panel value="easyConfig" :header="$t('pages.setting.data.easyConfig.title')">
                 <t-radio-group v-model="formData.easyConfig.type">
-                  <t-radio :value="0">此软件</t-radio>
-                  <t-radio :value="1">drpy</t-radio>
-                  <t-radio :value="2">tvbox</t-radio>
-                  <t-radio :value="3">hipy</t-radio>
+                  <t-radio :value="0">{{ $t('pages.setting.data.easyConfig.app') }}</t-radio>
+                  <t-radio :value="1">{{ $t('pages.setting.data.easyConfig.drpy') }}</t-radio>
+                  <t-radio :value="2">{{ $t('pages.setting.data.easyConfig.tvbox') }}</t-radio>
+                  <t-radio :value="3">{{ $t('pages.setting.data.easyConfig.hipy') }}</t-radio>
                 </t-radio-group>
-                <p v-if="formData.easyConfig.type === 0" class="tip">请严格遵守本软件接口格式</p>
-                <p v-else-if="formData.easyConfig.type === 1" class="tip">目前仅支持sites中type:1的数据,请将js模式设置为0</p>
-                <p v-else-if="formData.easyConfig.type === 2" class="tip">目前仅支持sites中type:0或1且的cms类型的数据</p>
-                <t-input label="地址：" v-model="formData.easyConfig.url" class="input-item"></t-input>
-                <t-popconfirm content="原有数据将清除，确认配置吗" placement="bottom" @confirm="easyConfig">
-                  <t-button size="small" block ghost>配置</t-button>
+                <p v-if="formData.easyConfig.type === 0" class="tip">{{ $t('pages.setting.data.easyConfig.appTip') }}</p>
+                <p v-else-if="formData.easyConfig.type === 1" class="tip">{{ $t('pages.setting.data.easyConfig.drpyTip') }}</p>
+                <p v-else-if="formData.easyConfig.type === 2" class="tip">{{ $t('pages.setting.data.easyConfig.tvboxTip') }}</p>
+                <t-input :label="$t('pages.setting.data.easyConfig.address')" v-model="formData.easyConfig.url" class="input-item" :placeholder="$t('pages.setting.placeholder.general')"></t-input>
+                <t-popconfirm :content="$t('pages.setting.data.easyConfig.confirmTip')" placement="bottom" @confirm="easyConfig">
+                  <t-button size="small" block ghost>{{ $t('pages.setting.data.easyConfig.confirm') }}</t-button>
                 </t-popconfirm>
               </t-collapse-panel>
-              <t-collapse-panel value="remoteImport" header="配置导入">
+              <t-collapse-panel value="remoteImport" :header="$t('pages.setting.data.configImport.title')">
                 <t-radio-group v-model="formData.importData.type">
-                  <t-radio value="remote">远端导入</t-radio>
-                  <t-radio value="local">本地导入</t-radio>
+                  <t-radio value="remote">{{ $t('pages.setting.data.configImport.remote') }}</t-radio>
+                  <t-radio value="local">{{ $t('pages.setting.data.configImport.local') }}</t-radio>
                 </t-radio-group>
-                <p class="content">由于兼容问题, 旧数据导入将丢弃历史和收藏数据</p>
+                <p class="content">{{ $t('pages.setting.data.configImport.dropTip') }}</p>
                 <div v-if="formData.importData.type === 'remote'">
-                  <t-input label="地址：" v-model="formData.importData.remoteImpoUrl" class="input-item"></t-input>
+                  <t-input :label="$t('pages.setting.data.configImport.address')" v-model="formData.importData.remoteImpoUrl" class="input-item" :placeholder="$t('pages.setting.placeholder.general')"></t-input>
                 </div>
                 <div v-else>
                   <t-upload 
@@ -43,39 +43,41 @@
                     :request-method="requestMethod"
                   />
                 </div>
-                <t-popconfirm content="原有数据将清除，确认导入吗" placement="bottom" @confirm="importData">
-                  <t-button size="small" block ghost>导入</t-button>
+                <t-popconfirm :content="$t('pages.setting.data.configImport.importTip')" placement="bottom" @confirm="importData">
+                  <t-button size="small" block ghost>{{ $t('pages.setting.data.configImport.import') }}</t-button>
                 </t-popconfirm>
               </t-collapse-panel>
-              <t-collapse-panel value="exportData" header="配置导出">
-                <t-radio v-model="active.export.site" allow-uncheck class="radio-item">影视源</t-radio>
-                <t-radio v-model="active.export.iptv" allow-uncheck class="radio-item">电视源</t-radio>
-                <t-radio v-model="active.export.channel" allow-uncheck class="radio-item">电视频道</t-radio>
-                <t-radio v-model="active.export.analyze" allow-uncheck class="radio-item">解析源</t-radio>
-                <t-radio v-model="active.export.drive" allow-uncheck class="radio-item">网盘源</t-radio>
-                <t-radio v-model="active.export.history" allow-uncheck class="radio-item">历史</t-radio>
-                <t-radio v-model="active.export.star" allow-uncheck class="radio-item">收藏</t-radio>
-                <t-radio v-model="active.export.setting" allow-uncheck class="radio-item">基础配置</t-radio>
-                <t-popconfirm content="选中数据将被导出,确认操作吗" placement="bottom" @confirm="exportData">
-                  <t-button size="small" block ghost>导出</t-button>
+              <t-collapse-panel value="exportData" :header="$t('pages.setting.data.configExport.title')">
+                <t-radio v-model="active.export.site" allow-uncheck class="radio-item">{{ $t('pages.setting.data.configExport.site') }}</t-radio>
+                <t-radio v-model="active.export.iptv" allow-uncheck class="radio-item">{{ $t('pages.setting.data.configExport.iptv') }}</t-radio>
+                <t-radio v-model="active.export.channel" allow-uncheck class="radio-item">{{ $t('pages.setting.data.configExport.channel') }}</t-radio>
+                <t-radio v-model="active.export.analyze" allow-uncheck class="radio-item">{{ $t('pages.setting.data.configExport.analyze') }}</t-radio>
+                <t-radio v-model="active.export.drive" allow-uncheck class="radio-item">{{ $t('pages.setting.data.configExport.drive') }}</t-radio>
+                <t-radio v-model="active.export.history" allow-uncheck class="radio-item">{{ $t('pages.setting.data.configExport.history') }}</t-radio>
+                <t-radio v-model="active.export.star" allow-uncheck class="radio-item">{{ $t('pages.setting.data.configExport.star') }}</t-radio>
+                <t-radio v-model="active.export.setting" allow-uncheck class="radio-item">{{ $t('pages.setting.data.configExport.setting') }}</t-radio>
+                <t-popconfirm :content="$t('pages.setting.data.configExport.exportTip')" placement="bottom" @confirm="exportData">
+                  <t-button size="small" block ghost>{{ $t('pages.setting.data.configExport.export') }}</t-button>
                 </t-popconfirm>
               </t-collapse-panel>
-              <t-collapse-panel value="clearData" header="清理数据">
-                <t-radio v-model="active.clear.site" allow-uncheck class="radio-item">影视源</t-radio>
-                <t-radio v-model="active.clear.iptv" allow-uncheck class="radio-item">电视源</t-radio>
-                <t-radio v-model="active.clear.channel" allow-uncheck class="radio-item">电视频道</t-radio>
-                <t-radio v-model="active.clear.analyze" allow-uncheck class="radio-item">解析源</t-radio>
-                <t-radio v-model="active.clear.drive" allow-uncheck class="radio-item">网盘源</t-radio>
-                <t-radio v-model="active.clear.history" allow-uncheck class="radio-item">历史</t-radio>
-                <t-radio v-model="active.clear.star" allow-uncheck class="radio-item">收藏</t-radio>
-                <t-radio v-model="active.clear.thumbnail" allow-uncheck class="radio-item">缩略图
+              <t-collapse-panel value="clearData" :header="$t('pages.setting.data.clearData.title')">
+                <t-radio v-model="active.clear.site" allow-uncheck class="radio-item">{{ $t('pages.setting.data.clearData.site') }}</t-radio>
+                <t-radio v-model="active.clear.iptv" allow-uncheck class="radio-item">{{ $t('pages.setting.data.clearData.iptv') }}</t-radio>
+                <t-radio v-model="active.clear.channel" allow-uncheck class="radio-item">{{ $t('pages.setting.data.clearData.channel') }}</t-radio>
+                <t-radio v-model="active.clear.analyze" allow-uncheck class="radio-item">{{ $t('pages.setting.data.clearData.analyze') }}</t-radio>
+                <t-radio v-model="active.clear.drive" allow-uncheck class="radio-item">{{ $t('pages.setting.data.clearData.drive') }}</t-radio>
+                <t-radio v-model="active.clear.history" allow-uncheck class="radio-item">{{ $t('pages.setting.data.clearData.history') }}</t-radio>
+                <t-radio v-model="active.clear.star" allow-uncheck class="radio-item">{{ $t('pages.setting.data.clearData.star') }}</t-radio>
+                <t-radio v-model="active.clear.thumbnail" allow-uncheck class="radio-item">
+                  {{ $t('pages.setting.data.clearData.thumbnail') }}
                   <span class="title">「{{ formData.size.thumbnail }}MB」</span>
                 </t-radio>
-                <t-radio v-model="active.clear.cache" allow-uncheck class="radio-item">缓存
+                <t-radio v-model="active.clear.cache" allow-uncheck class="radio-item">
+                  {{ $t('pages.setting.data.clearData.cache') }}
                   <span class="title">「{{ formData.size.cache }}MB」</span>
                 </t-radio>
-                <t-popconfirm content="选中数据将被删除,确认操作吗" placement="bottom"  @confirm="clearData">
-                  <t-button size="small" block ghost>清理</t-button>
+                <t-popconfirm :content="$t('pages.setting.data.clearData.clearTip')" placement="bottom"  @confirm="clearData">
+                  <t-button size="small" block ghost>{{ $t('pages.setting.data.clearData.clear') }}</t-button>
                 </t-popconfirm>
               </t-collapse-panel>
             </t-collapse>
@@ -86,31 +88,36 @@
         </div>
         <div class="data-item">
           <span class="separator"></span>
-          <p class="title">同步盘</p>
-          <p class="content">1. 因不收集用户的数据, 可以选择同步盘作为配置文件保存服务</p>
-          <p class="content">2. 内置webdav作为同步盘服务, 推荐坚果云</p>
+          <p class="title">{{ $t('pages.setting.data.syncDisk') }}</p>
+          <p class="content">1.{{ $t('pages.setting.data.content1') }}</p>
+          <p class="content">2.{{ $t('pages.setting.data.content2') }}</p>
+          <p class="content">3.{{ $t('pages.setting.data.content3') }}</p>
           <div class="config"> 
             <t-collapse>
-              <t-collapse-panel value="0" header="配置同步盘参数">
+              <t-collapse-panel value="0" :header="$t('pages.setting.data.webdev.title')">
                 <template #headerRightContent>
-                  <t-space size="small">  
-                    <t-button size="small" @click.stop="saveWebdev">保存</t-button>
-                    <t-button theme="default" size="small" @click.stop="checkWebdev">校验</t-button>
+                  <t-space size="small">
+                    <span class="sync-switch">
+                      <span class="sync-switch-text">{{ $t('pages.setting.data.webdev.sync') }}</span>
+                      <t-switch v-model="formData.webdev.sync" />
+                    </span>
+                    <t-button size="small" shape="round" @click.stop="saveWebdev">{{ $t('pages.setting.data.webdev.save') }}</t-button>
+                    <t-button size="small" shape="round" theme="default" @click.stop="checkWebdevEvent">{{ $t('pages.setting.data.webdev.check') }}</t-button>
                   </t-space>
                 </template>
-                <t-input label="云地址：" v-model="formData.url" class="input-item"></t-input>
-                <t-input label="用户名：" v-model="formData.username" class="input-item"></t-input>
-                <t-input label="授权码：" v-model="formData.password" type="password" class="input-item"></t-input>
+                <t-input :label="$t('pages.setting.data.webdev.url')" v-model="formData.webdev.data.url" class="input-item"></t-input>
+                <t-input :label="$t('pages.setting.data.webdev.username')" v-model="formData.webdev.data.username" class="input-item"></t-input>
+                <t-input :label="$t('pages.setting.data.webdev.password')" v-model="formData.webdev.data.password" type="password" class="input-item"></t-input>
               </t-collapse-panel>
             </t-collapse>
           </div>
           <div class="action">
             <div class="action-item">
-              <t-popconfirm content="云端数据将被覆盖,确认操作吗" placement="bottom"  @confirm="rsyncRemote">
-                <t-button theme="default" class="btn-2">同步数据到帐号</t-button>
+              <t-popconfirm :content="$t('pages.setting.data.syncToCloudTip')" placement="bottom"  @confirm="rsyncRemoteEvent">
+                <t-button theme="default" class="btn-2">{{ $t('pages.setting.data.syncToCloud') }}</t-button>
               </t-popconfirm>
-              <t-popconfirm content="本地数据将被清除,确认操作吗" placement="bottom"  @confirm="rsyncLocal">
-                <t-button theme="default" class="btn-2">云数据覆盖本地</t-button>
+              <t-popconfirm :content="$t('pages.setting.data.syncToLocalTip')" placement="bottom"  @confirm="rsyncLocalEvent">
+                <t-button theme="default" class="btn-2">{{ $t('pages.setting.data.syncToLocal') }}</t-button>
               </t-popconfirm>
             </div>
           </div>
@@ -127,10 +134,13 @@ import _ from 'lodash';
 import { MessagePlugin } from 'tdesign-vue-next';
 import { nanoid } from 'nanoid';
 import { ref, watch, reactive } from 'vue';
-import { createClient } from "webdav";
 
+import { t } from '@/locales';
+import { initializeWebdavClient, rsyncLocal, rsyncRemote } from '@/utils/webdev';
 import { updateSetting, clearDb, exportDb, setDefault, initDb } from '@/api/setting';
 import { getConfig } from '@/utils/tool';
+
+import pkg from '../../../../../../../package.json'
 
 const remote = window.require('@electron/remote');
 const win = remote.getCurrentWindow();
@@ -156,9 +166,14 @@ const props = defineProps({
 });
 const formVisible = ref(false);
 const formData = reactive({
-  url: '',
-  username: '',
-  password: '',
+  webdev: {
+    sync: false,
+    data: {
+      url: '',
+      username: '',
+      password: ''
+    }
+  },
   easyConfig: {
     type: 0,
     url: ''
@@ -210,8 +225,6 @@ const active = reactive({
   }
 });
 
-const clientWebdev = ref(null);
-
 const emit = defineEmits(['update:visible']);
 
 watch(
@@ -233,19 +246,14 @@ watch(
 watch(
   () => props.webdev,
   (val) => {
-    formData.url = val.webdevUrl;
-    formData.username = val.webdevUsername;
-    formData.password = val.webdevPassword;
+    formData.webdev = val.webdev;
   }
 )
 
 // 一键配置
 const easyConfig = async() => {
   const { url, type } = formData.easyConfig;
-  if (!url) {
-    MessagePlugin.warning('请输入一键配置地址');
-    return;
-  };
+  if (!url) return;
 
   let config = await getConfig(url);
   if (!_.isPlainObject(config)) return;
@@ -368,9 +376,9 @@ const easyConfig = async() => {
 
     data = await commonDelImportData(data);
     await initDb(data);
-    MessagePlugin.info(`一键配置成功`);
+    MessagePlugin.success(t('pages.setting.data.success'));
   } catch (err) {
-    MessagePlugin.error(`一键配置失败：${err}`);
+    MessagePlugin.error(`${t('pages.setting.data.fail')}:${err}`);
     console.log(err);
   }
 };
@@ -380,7 +388,6 @@ const importData = async() => {
   const { type, remoteImpoUrl, localImpoFile } = formData.importData;
 
   if ((type === 'remote' && !remoteImpoUrl)  || (type === 'local') && (localImpoFile.length === 0)) {
-    MessagePlugin.warning('请选择或者填写数据');
     return;
   };
 
@@ -391,62 +398,89 @@ const importData = async() => {
   };
 };
 
+// 格式化设置数据
+const formatSet = (data) => {
+  const pkgVersion = pkg.version;
+
+  // 更新或添加新键值对
+  const newEntries = [
+    { key: "windowPosition", value: { status: _.get(data, ["restoreWindowPositionAndSize", "value"], false), position: { width: 1000, height: 640 } } },
+    { key: "webdev", value: { 
+        sync: false, data: {
+          url: _.get(data, ["webdevUrl", "value"], "https://dav.jianguoyun.com/dav/"),
+          username: _.get(data, ["webdevUsername", "value"], ""),
+          password: _.get(data, ["webdevPassword", "value"], "")
+        }
+      }
+    },
+    { key: "lang", value: "zh_CN" },
+    { key: "defaultViewCasual", value: "" },
+    { key: "barrage", value: { url: "", key: "danmuku", support: ["qq", "qiyi", "youku", "mgtv"], start: "0", mode: "1", color: "2", content: "4" } },
+    { key: "playerMode", value: { type: _.get(data, ["broadcasterType", "value"], 'xgplayer'), external: _.get(data, ["externalPlayer", "value"], '') } },
+    { key: "snifferMode", value: { type: _.get(data, ["snifferType", "value"], "pie"), url: "" } },
+    { key: "version", value: pkgVersion },
+    // ... 其他新键值对
+  ];
+
+  newEntries.forEach(({ key, value }) => {
+    const index = _.findIndex(data, { key });
+    if (index > -1) {
+      const entry = data[index];
+      if (key === 'windowPosition' && typeof entry.value !== 'object') {
+        data[index].value = value;
+      } else if (key === 'version') {
+        data[index].value = value;
+      }
+    } else {
+      data.push({ id: nanoid(), key, value });
+    }
+  });
+
+  // 删除不再需要的旧键
+  const keysToRemove = [
+    'webdevUrl', 'webdevUsername', 'webdevPassword',
+    'broadcasterType', 'externalPlayer', 'snifferType',
+    'restoreWindowPositionAndSize', 'analyzeSupport', 'analyzeQuickSearchType',
+    'pauseWhenMinimize'
+  ];
+  keysToRemove.forEach((key) => {
+    const index = _.findIndex(data, { key });
+    if (index > -1) {
+      data.splice(index, 1);
+    }
+  });
+
+  return data;
+}
+
 // 公共导入方法
 const commonDelImportData = (data) => {
   try {
-    // 先处理就数据
+    // 先处理旧数据
     ['sites', 'iptv', 'analyze', 'drive', 'setting', 'channel'].forEach(key => {
       if (_.has(data, key)) {
+        const tblKey = key === 'sites' ? 'site' : key;
         if (key === 'setting') {
-          data["tbl_setting"] = data['setting'][0] ? Object.entries(data['setting'][0]).map(([key, value]) => ({ key, value })) : [];
-          const positionIndex = _.findIndex(data["tbl_setting"], {key: 'windowPosition'});
-          const versionIndex = _.findIndex(data["tbl_setting"], {key: 'version'});
-          if (positionIndex > -1) {
-            data["tbl_setting"][positionIndex] = {
-              key: 'windowPosition',
-              value: {
-                status: false,
-                position: {
-                  width: 1000,
-                  height: 640,
-                }
-              }
-            }
-          } else {
-            data["tbl_setting"].push({
-              key: 'windowPosition',
-              value: {
-                status: false,
-                position: {
-                  width: 1000,
-                  height: 640,
-                }
-              }
-            })
-          }
-          if (versionIndex > -1) {
-            data["tbl_setting"][versionIndex] = {
-              key: 'version',
-              value: process.env.npm_package_version
-            }
-          } else {
-            data["tbl_setting"].push({
-              key: 'version',
-              value: process.env.npm_package_version
-            })
-          }
+          const tblSetting = data.setting[0]
+            ? Object.entries(data.setting[0]).map(([k, v]) => ({ key: k, value: v }))
+            : [];
+          
+          data[`tbl_${tblKey}`] = tblSetting;
         } else {
-          const tblKey = key === 'sites' ? 'site' : key;
           data[`tbl_${tblKey}`] = data[key].data || data[key];
         }
       }
     });
+
+    // 处理设置
+    data['tbl_setting'] = formatSet(data['tbl_setting']);
 
     // 规范化 id 字段
     const newDataTypes = ['tbl_site', 'tbl_iptv', 'tbl_channel', 'tbl_analyze', 'tbl_drive', 'tbl_history', 'tbl_star', 'tbl_setting'];
     for (const dataType of newDataTypes) {
       if (_.has(data, dataType)) {
         const dataArray = data[dataType];
+
         for (let i = 0; i < dataArray.length; i++) {
           const dataItem = dataArray[i];
           if (_.has(dataItem, 'id')) {
@@ -466,9 +500,8 @@ const commonDelImportData = (data) => {
       if (!newDataTypes.includes(key)) {
         delete data[key];
       }
-    }
+    };
 
-    console.log(data)
     return data;
   } catch (err) {
     throw err;
@@ -482,9 +515,9 @@ const importFromRemote = async (url) => {
     config = await commonDelImportData(config);
 
     await initDb(config);
-    MessagePlugin.info(`导入成功`);
-  } catch (error) {
-    MessagePlugin.error(`导入失败：${error}`);
+    MessagePlugin.success(t('pages.setting.data.success'));
+  } catch (err) {
+    MessagePlugin.error(`${t('pages.setting.data.fail')}:${err}`);
   }
 };
 
@@ -493,15 +526,15 @@ const importFromLocal = (file) => {
   const reader = new FileReader();
   reader.readAsText(file);
   reader.onload = async(resultFile) => {
-    const pointsTxt = resultFile.target.result;
+    const pointsTxt = resultFile.target!.result;
     try {
       let json = JSON.parse(String(pointsTxt));
       json = await commonDelImportData(json);
 
       await initDb(json);
-      MessagePlugin.info(`导入成功`);
+      MessagePlugin.success(t('pages.setting.data.success'));
     } catch (err) {
-      MessagePlugin.error(`导入失败：${err}`);
+      MessagePlugin.error(`${t('pages.setting.data.fail')}:${err}`);
     }
   }
 }
@@ -523,10 +556,8 @@ const requestMethod = (file) => {
 
 // 导出
 const exportData = async() => {
-  if (!_.includes(_.values(active.export), true)) {
-    MessagePlugin.warning('请选择需要类型');
-    return;
-  };
+  if (!_.includes(_.values(active.export), true)) return;
+
   const activeList = _.keys(_.pickBy(active.export, _.identity));
   const dbData = await exportDb(activeList);
   const str = JSON.stringify(dbData, null, 2);
@@ -541,12 +572,11 @@ const exportData = async() => {
       const { filePath } = saveDialogResult;
       const fs = remote.require('fs').promises;
       await fs.writeFile(filePath, str, 'utf-8');
-      console.log('File saved successfully');
-      MessagePlugin.success('File saved successfully');
+      MessagePlugin.success(t('pages.setting.data.success'));
     }
   } catch (err) {
     console.error('Failed to save or open save dialog:', err);
-    MessagePlugin.error(`操作失败: ${err}`);
+    MessagePlugin.error(`${t('pages.setting.data.fail')}:${err}`);
   }
 };
 
@@ -571,10 +601,7 @@ const getThumbnailSize = () => {
 
 // 清理缓存
 const clearData = async() => {
-  if (!_.some(active.clear)) {
-    MessagePlugin.warning('请选择需要类型');
-    return;
-  };
+  if (!_.some(active.clear)) return;
   
   try {
     const activeList = _.keys(_.pickBy(active.clear, _.identity));
@@ -626,88 +653,57 @@ const clearData = async() => {
       }
     }
 
-    MessagePlugin.success('清理成功');
+    MessagePlugin.success(t('pages.setting.data.success'));
   } catch (err) {
     console.log('data clear fail', err);
-    MessagePlugin.error(`操作失败: ${err}`);
+    MessagePlugin.error(`${t('pages.setting.data.fail')}:${err}`);
   }
 }
-
-// 初始化
-const initWebdav = async() => {
-  if (!formData.url && !formData.username && !formData.password) {
-    MessagePlugin.warning('请补全同步盘配置信息');
-    return;
-  };
-  clientWebdev.value = await createClient(
-    formData.url,
-    {
-      username: formData.username,
-      password: formData.password
-    }
-  );
-  if (await clientWebdev.value.exists("/zyplayer") === false) {
-    await clientWebdev.value.createDirectory("/zyplayer");
-  };
-};
 
 // 保存
 const saveWebdev = async() => {
   try {
-    await updateSetting({
-      webdevUrl: formData.url,
-      webdevUsername: formData.username,
-      webdevPassword: formData.password,
-    })
-    MessagePlugin.success('保存成功');
+    await updateSetting({ webdev: formData.webdev });
+    MessagePlugin.success(t('pages.setting.data.success'));
   } catch (err) {
-    MessagePlugin.error(`保存失败:${err}`)
+    MessagePlugin.error(`${t('pages.setting.data.fail')}:${err}`);
   };
 };
 
 // 校验
-const checkWebdev = async() => {
-  try {
-    if (!clientWebdev.value) await initWebdav();
-    if (!formData.url && !formData.username && !formData.password) return;
-    await clientWebdev.value.getDirectoryContents("/");
-    MessagePlugin.success('连接成功');
-  } catch (err) {
-    MessagePlugin.error(`连接失败:${err}`)
+const checkWebdevEvent = async() => {
+  const { url, username, password } = formData.webdev.data;
+  const res = await initializeWebdavClient(url, username, password);
+  if (res) {
+    MessagePlugin.success(t('pages.setting.data.success'));
+  } else {
+    MessagePlugin.error(`${t('pages.setting.data.fail')}`);
   };
 }
 
 // 覆盖远端
-const rsyncRemote = async() => {
-  try {
-    if (!clientWebdev.value) await initWebdav();
-    if (!formData.url && !formData.username && !formData.password) return;
-    const str = await exportDb(["all"]);
-    const formatToJson = JSON.stringify(str);
-    await clientWebdev.value.putFileContents("/zyplayer/config.json", formatToJson, { overwrite: false });
-    MessagePlugin.success('传输成功');
-  } catch (err) {
-    MessagePlugin.error(`传输失败:${err}`);
-    console.error(err);
+const rsyncRemoteEvent = async() => {
+  const { url, username, password } = formData.webdev.data;
+  const res = await rsyncRemote(url, username, password);
+  if (res) {
+    MessagePlugin.success(t('pages.setting.data.success'));
+  } else {
+    MessagePlugin.error(`${t('pages.setting.data.fail')}`);
   };
 }
 
 // 覆盖本地
-const rsyncLocal = async() => {
-  try {
-    if (!clientWebdev.value) await initWebdav();
-    if (!formData.url && !formData.username && !formData.password) return;
-    const str: string = await clientWebdev.value.getFileContents("/zyplayer/config.json", { format: "text" });
-    const formatToJson = JSON.parse(str);
-    await initDb(formatToJson);
-    MessagePlugin.success('获取云端文件成功');
-  } catch (err) {
-    MessagePlugin.error(`获取文件失败:${err}`);
-    console.error(err);
+const rsyncLocalEvent = async() => {
+  const { url, username, password } = formData.webdev.data;
+  const res = await rsyncLocal(url, username, password);
+  if (res) {
+    MessagePlugin.success(t('pages.setting.data.success'));
+  } else {
+    MessagePlugin.error(`${t('pages.setting.data.fail')}`);
   };
 }
-
 </script>
+
 <style lang="less" scoped>
 .data-dialog-container {
   max-height: 430px;
@@ -754,6 +750,11 @@ const rsyncLocal = async() => {
         .btn-3 {
           width: 33%;
         }
+      }
+    }
+    .sync-switch {
+      .sync-switch-text {
+        margin-right: var(--td-comp-margin-xs);
       }
     }
   }

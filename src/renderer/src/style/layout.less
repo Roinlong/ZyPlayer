@@ -132,6 +132,7 @@
   }
 
   &-content {
+    position: relative;
     height: calc(100vh - 60px);
     overflow: hidden;
     border-radius: var(--td-radius-large);
@@ -359,6 +360,10 @@
   }
 }
 
+.t-dropdown {
+  border: none !important;
+}
+
 .t-popup__content {
   background-color: var(--td-bg-popup);
 }
@@ -367,12 +372,16 @@
   padding: var(--td-size-1);
   .t-input {
     background-color: var(--td-bg-content-input) !important;
-    border: none;
+    border-color: transparent;
   };
 }
 
 .t-message {
   border-radius: 50px;
+}
+
+.t-tag-input .t-tag {
+  background-color: var(--td-context-quarternary);
 }
 
 .search {

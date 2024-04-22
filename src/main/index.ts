@@ -1,19 +1,20 @@
 import remote from '@electron/remote/main';
 import { electronApp, is, optimizer } from '@electron-toolkit/utils';
 
-import { app, BrowserWindow, globalShortcut, ipcMain, nativeTheme, protocol, session, shell } from 'electron';
+import { app, BrowserWindow, globalShortcut, ipcMain, nativeTheme, session, shell } from 'electron';
 import fixPath from 'fix-path';
 import { join } from 'path';
 import url from 'url';
 
 import initServer from './core/server';
-import { init as dbInit} from './core/db';
+import { setup as dbInit } from './core/db';
 import { setting } from './core/db/service';
 import createMenu from './core/menu';
 import { ipcListen, tmpDir } from './core/ipc';
 import logger from './core/logger';
 import autoUpdater from './core/update';
 import createTray from './core/tray';
+import protocolResgin from './core/protocolResgin';
 
 import loadHtml from '../../resources/html/load.html?asset'
 
@@ -31,9 +32,6 @@ app.commandLine.appendSwitch('disable-features', 'BlockInsecurePrivateNetworkReq
 app.commandLine.appendSwitch('ignore-certificate-errors'); // 忽略证书相关错误
 app.commandLine.appendSwitch('enable-features', 'PlatformHEVCDecoderSupport'); // 支持hevc
 app.commandLine.appendSwitch('disable-site-isolation-trials'); // iframe 跨域
-
-// 注册协议  在应用程序准备就绪之前注册
-protocol.registerSchemesAsPrivileged([{ scheme: 'zy', privileges: { secure: true, standard: true } }]);
 
 remote.initialize(); // 主进程初始化
 dbInit(); // 初始化数据库
@@ -222,6 +220,18 @@ app.whenReady().then(async() => {
   defaultSession.webRequest.onBeforeRequest({ urls: ['*://*/*'] }, (details, callback) => {
     let { url, id } = details;
 
+    const filters = [
+      'devtools-detector.min.js',
+      'devtools-detector.js'
+    ];
+
+    for (const filter of filters) {
+      if (url.includes(filter)) {
+        callback({ cancel: true });
+        return;
+      }
+    }
+
     // http://bfdsr.hutu777.com/upload/video/2024/03/20/c6b8e67e75131466cfcbb18ed75b8c6b.JPG@Referer=www.jianpianapp.com@User-Agent=jianpian-version353
     const { redirectURL, headers } = parseCustomUrl(url);
     if (!url.includes('//localhost') && ['Referer', 'Cookie', 'User-Agent'].some(str => url.includes(str))) {
@@ -283,6 +293,10 @@ app.whenReady().then(async() => {
     mainWindow!.webContents.send('screen', false);
   });
 
+  mainWindow!.webContents.on('console-message', (_, level, message, line, sourceId) => {
+    logger.info(`[vue][level: ${level}][file: ${sourceId}][line: ${line}] ${message}`);
+  });
+
   // 检测更新
   autoUpdater(mainWindow!);
   // 引入主 Ipc
@@ -293,6 +307,8 @@ app.whenReady().then(async() => {
   createMenu();
   // 快捷键
   // createGlobalShortcut(mainWindow);
+  // 协议注册
+  protocolResgin();
   if (shortcutsState) {
     globalShortcut.register(shortcutsState, () => {
       // Do stuff when Y and either Command/Control is pressed.
@@ -354,19 +370,18 @@ ipcMain.on('openPlayWindow', (_, arg) => {
   logger.info(process.env['ELECTRON_RENDERER_URL'])
   if (playWindow) playWindow.destroy();
   playWindow = new BrowserWindow({
-    width: 890,
-    minWidth: 890,
+    width: 875,
+    minWidth: 875,
     height: 550,
     minHeight: 550,
     titleBarStyle: 'hiddenInset',
     show: false,
     frame: false,
     autoHideMenuBar: true,
-    backgroundColor: '#18191c',
     title: arg,
     trafficLightPosition: {
-      x: 10,
-      y: 15,
+      x: 12,
+      y: 20,
     },
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
@@ -381,6 +396,9 @@ ipcMain.on('openPlayWindow', (_, arg) => {
   playWindow.webContents.setWindowOpenHandler((details) => {
     shell.openExternal(details.url);
     return { action: 'deny' };
+  });
+  playWindow.webContents.on('console-message', (_, level, message, line, sourceId) => {
+    logger.info(`[vue][level: ${level}][file: ${sourceId}][line: ${line}] ${message}`);
   });
 
   if (is.dev && process.env['ELECTRON_RENDERER_URL']) {

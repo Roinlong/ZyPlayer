@@ -1,6 +1,6 @@
 <template>
   <div class="setting-container">
-    <common-nav title="设置" :list="settingSet.list" :active="settingSet.select" @change-key="changeClassEvent">
+    <common-nav :title="$t('pages.setting.name')" :list="settingSet.list" :active="settingSet.select" @change-key="changeClassEvent">
       <template #customize>
         <div class="sign-bar">
           <div class="sign-logo">
@@ -8,12 +8,12 @@
             </div>
           <div class="sign-content">
             <div class="sign-text">
-              <h2>与Hipy更配哦</h2>
-              <p>新起点, 新开始</p>
+              <h2>{{ $t('pages.setting.ad.title') }}</h2>
+              <p>{{ $t('pages.setting.ad.desc') }}</p>
             </div>
           </div>
           <div class="sign-btn">
-            <a href="https://github.com/hjdhnx/hipy-server" target="_blank">查看</a>
+            <a href="https://github.com/hjdhnx/hipy-server" target="_blank">{{ $t('pages.setting.ad.open') }}</a>
           </div>
         </div>
       </template>
@@ -25,6 +25,7 @@
         <iptv-view class="container-item" v-else-if="settingSet.select === 'iptvSource'"/>
         <analyze-view class="container-item" v-else-if="settingSet.select === 'analyzeSource'"/>
         <drive-view class="container-item" v-else-if="settingSet.select === 'driveSource'"/>
+        <edit-source-view class="container-item" v-else-if="settingSet.select === 'editSource'"/>
       </div>
     </div>
   </div>
@@ -32,6 +33,8 @@
 
 <script setup lang="ts">
 import { computed, reactive, watch } from 'vue';
+
+import { t } from '@/locales';
 import { useSettingStore } from '@/store';
 
 import analyzeView from './setting/analyze/AnalyzeSetting.vue';
@@ -39,6 +42,7 @@ import baseView from './setting/base/BaseSetting.vue';
 import iptvView from './setting/iptv/IptvSetting.vue';
 import siteView from './setting/site/SiteSetting.vue';
 import driveView from './setting/drive/DriveSetting.vue';
+import editSourceView from './setting/tool/EditSource.vue';
 import CommonNav from '../components/common-nav/index.vue';
 
 const storeSetting = useSettingStore();
@@ -46,43 +50,50 @@ const sysConfigSwitch = computed(() => {
   return storeSetting.getSysConfigSwitch;
 });
 
-const settingSet = reactive({
-  select: 'configBase',
-  list: [
+const settingNav = computed(() => {
+  return [
     {
       id: 'configBase',
-      name: '基础配置'
+      name: t('pages.setting.nav.configBase')
     },{
       id: 'siteSource',
-      name: '影视配置'
+      name: t('pages.setting.nav.siteSource')
     },{
       id: 'iptvSource',
-      name: '电视配置'
+      name: t('pages.setting.nav.iptvSource')
     },{
       id: 'analyzeSource',
-      name: '解析配置'
+      name: t('pages.setting.nav.analyzeSource')
     },{
       id: 'driveSource',
-      name: '网盘配置'
+      name: t('pages.setting.nav.driveSource')
+    },{
+      id: 'editSource',
+      name: t('pages.setting.nav.editSource')
     }
   ]
-})
+});
+
+const settingSet = reactive({
+  select: 'configBase',
+  list: settingNav
+});
 
 if (storeSetting.getSysConfigSwitch) {
   settingSet.select = storeSetting.getSysConfigSwitch;
-}
+};
 
 watch(() => settingSet.select, (newValue) => {
   storeSetting.updateConfig({ sysConfigSwitch: newValue });
-})
+});
 
 watch(() => sysConfigSwitch.value, (newValue) => {
   settingSet.select = newValue;
-})
+});
 
 const changeClassEvent = (item) => {
-  settingSet.select = item
-}
+  settingSet.select = item;
+};
 </script>
 
 <style lang="less" scoped>

@@ -10,6 +10,7 @@ export default {
   site: [
     {
       url: 'https://www.iqiyi.com/',
+      id: 'iqiyi',
       name: '爱奇艺',
       img: logoIqiyi,
       show: true,
@@ -17,6 +18,7 @@ export default {
     },
     {
       url: 'https://v.qq.com/',
+      id: 'tencent',
       name: '腾讯视频',
       img: logoVqq,
       show: true,
@@ -24,6 +26,7 @@ export default {
     },
     {
       url: 'https://youku.com/',
+      id: 'youku',
       name: '优酷视频',
       img: logoYouku,
       show: true,
@@ -31,6 +34,7 @@ export default {
     },
     {
       url: 'https://www.mgtv.com/',
+      id: 'mgtv',
       name: '芒果tv',
       img: logoMgtv,
       show: true,
@@ -38,6 +42,7 @@ export default {
     },
     {
       url: 'https://www.le.com/',
+      id: 'letv',
       name: '乐视视频',
       img: logoLe,
       show: true,
@@ -45,6 +50,7 @@ export default {
     },
     {
       url: 'https://tv.sohu.com/',
+      id: 'sohu',
       name: '搜狐视频',
       img: logoSohu,
       show: true,
@@ -52,7 +58,8 @@ export default {
     },
     {
       url: 'https://www.pptv.com/',
-      name: 'PPTV',
+      id: 'pptv',
+      name: 'pp视频',
       img: logoPptv,
       show: true,
       search: 'https://sou.pptv.com/s_video?kw=',

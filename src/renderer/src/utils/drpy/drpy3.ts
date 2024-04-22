@@ -1,14 +1,14 @@
 /*!
  * @module drpy3
  * @brief T3数据处理核心库
- * @version 3.1.1
+ * @version 3.1.2
  * 
  * @original-author hjdhnx
  * @original-source {@link https://github.com/hjdhnx/hipy-server/blob/master/app/t4/files/drpy3_libs/drpy3.js | Source on GitHub}
  * 
  * @modified-by HiramWong <admin@catni.cn>
- * @modification-date 2023-04-09T18:37:11+08:00
- * @modification-description 使用TypeScript适配, 适用于JavaScript项目, 并采取措施防止 Tree-Shaking 删除关键代码
+ * @modification-date 2023-04-20T23:16:48+08:00
+ * @modification-description 使用TypeScript适配, 并采取措施防止 Tree-Shaking 删除关键代码
  * 
  * **防止 Tree-Shake 说明**:
  * - 为了确保 `drpy3.ts` 中的函数和变量不被 Tree Shaking, 已采取以下措施：
@@ -21,8 +21,10 @@
 
 
 import CryptoJS from 'crypto-js';
-import cheerio from "./cheerio.min";
 import joinUrl from 'url';
+import JSEncrypt from 'wxmp-rsa';
+
+import cheerio from "./cheerio.min";
 import { getMubans } from './template';
 import gbkTool from './gbk';
 import { pdfh as pdfhModule, pdfa as pdfaModule, pd as pdModule, local, req } from './drpyInject';
@@ -34,6 +36,7 @@ const init_test = () => {
     "rule": rule
   }
   console.log(test_data);
+  return test_data;
 }
 
 /**
@@ -62,7 +65,7 @@ const pre = () => {
 let rule = {};
 // @ts-ignore
 let vercode = typeof pdfl === 'function' ? 'drpy3.1' : 'drpy3';
-const VERSION = `${vercode} 3.9.49beta36 202400308`;
+const VERSION = `${vercode} 3.9.49beta38 202400419`;
 /** 已知问题记录
  * 1.影魔的jinjia2引擎不支持 {{fl}}对象直接渲染 (有能力解决的话尽量解决下，支持对象直接渲染字符串转义,如果加了|safe就不转义)[影魔牛逼，最新的文件发现这问题已经解决了]
  * Array.prototype.append = Array.prototype.push; 这种js执行后有毛病,for in 循环列表会把属性给打印出来 (这个大毛病需要重点排除一下)
@@ -447,31 +450,53 @@ const decodeStr = (input, encoding) => {
 
 // 封装的RSA加解密类
 const RSA = {
-  encode: (data, key, option) => {
-    // @ts-ignore
-    if (typeof rsaEncrypt === 'function') {
-      if (!option || typeof option !== 'object') {
-        // @ts-ignore
-        return rsaEncrypt(data, key);
-      } else {
-        // @ts-ignore
-        return rsaEncrypt(data, key, option);
-      }
-    }
-    return false;
+  decode(data, key, option = { chunkSize: 117 }) {
+    if (typeof (JSEncrypt) === 'function') {
+      const chunkSize = option.chunkSize ?? 117; // 默认分段长度为117
+      const privateKey = this.getPrivateKey(key);
+      const decryptor = new JSEncrypt();
+      decryptor.setPrivateKey(privateKey);
+      return decryptor.decryptLong(data);
+    } return false;
   },
-  decode: (data, key, option) => {
-    // @ts-ignore
-    if (typeof rsaDecrypt === 'function') {
-      if (!option || typeof option !== 'object') {
-        // @ts-ignore
-        return rsaDecrypt(data, key);
-      } else {
-        // @ts-ignore
-        return rsaDecrypt(data, key, option);
-      }
+  encode(data, key, option = { chunkSize: 117 }) {
+    if (typeof (JSEncrypt) === 'function') {
+      const chunkSize = option.chunkSize ?? 117; // 默认分段长度为117
+      const publicKey = this.getPublicKey(key);
+      const encryptor = new JSEncrypt();
+      encryptor.setPublicKey(publicKey);
+      // let encrypted = ''; // 加密结果
+      // const textLen = data.length; // 待加密文本长度
+      // let offset = 0; // 分段偏移量
+      // // 分段加密
+      // while (offset < textLen) {
+      //   let chunk = data.substr(offset, chunkSize); // 提取分段数据
+      //   let enc = encryptor.encrypt(chunk); // 加密分段数据
+      //   encrypted += enc; // 连接加密结果
+      //   offset += chunkSize; // 更新偏移量
+      // }
+      return encryptor.encryptLong(data);
+    } return false;
+  },
+  fixKey(key, prefix, endfix) {
+    key = key.trim();
+    if (!key.startsWith(prefix)) {
+      key = `${prefix}${key}`;
     }
-    return false;
+    if (!key.endsWith(endfix)) {
+      key += endfix;
+    }
+    return key;
+  },
+  getPrivateKey(key) {
+    let prefix = '-----BEGIN RSA PRIVATE KEY-----';
+    let endfix = '-----END RSA PRIVATE KEY-----';
+    return this.fixKey(key, prefix, endfix);
+  },
+  getPublicKey(key) {
+    let prefix = '-----BEGIN PUBLIC KEY-----';
+    let endfix = '-----END PUBLIC KEY-----';
+    return this.fixKey(key, prefix, endfix);
   }
 };
 
@@ -1105,42 +1130,73 @@ const homeParse = (homeObj) => {
   }
 
   if (homeObj.class_parse) {
-    let p = homeObj.class_parse.split(';');
-    let _ps = parseTags.getParse(p[0]);
-    _pdfa = _ps.pdfa;
-    _pdfh = _ps.pdfh;
-    _pd = _ps.pd;
-    MY_URL = rule["url"];
-
-    if (p.length >= 3) { // 可以不写正则
+    if (homeObj.class_parse.startsWith('js:')) {
+      var input = homeObj.MY_URL;
       try {
-        let html = getHtml(homeObj.MY_URL);
-        if (html) {
-          homeHtmlCache = html;
-          let list = _pdfa(html, p[0]);
-          if (list && list.length > 0) {
-            list.forEach((it,idex) => {
-              try {
-                let name = _pdfh(it, p[1]);
-                if (homeObj.cate_exclude && (new RegExp(homeObj.cate_exclude).test(name))) return;
-                let url = _pd(it, p[2]);
-                if (p.length > 3 && p[3]) {
-                  let exp = new RegExp(p[3]);
-                  url = url.match(exp)[1];
-                }
-
-                classes.push({
-                  type_id: url.trim(),
-                  type_name: name.trim()
-                });
-              } catch (e) {
-                console.log(`[t3]分类列表定位第${idex}个元素正常报错:` , e);
-              }
-            });
-          }
+        eval(homeObj.class_parse.replace('js:', ''));
+        if (Array.isArray(input)) {
+          classes = input;
         }
-      } catch (e) {
-        console.log(e);
+      } catch(e) {
+        console.log(`通过js动态获取分类发生了错误:${e}`);
+      }
+    } else {
+      let p = homeObj.class_parse.split(';');
+      let p0 = p[0];
+      let _ps = parseTags.getParse(p0);
+      let is_json = p0.startsWith('json:');
+      _pdfa = _ps.pdfa;
+      _pdfh = _ps.pdfh;
+      _pd = _ps.pd;
+      MY_URL = rule["url"];
+      if(is_json){
+        try {
+          let cms_cate_url = homeObj.MY_URL.replace('ac=detail','ac=list');
+          let html = getHtml(cms_cate_url);
+          if (html) {
+            if(cms_cate_url === homeObj.MY_URL) {
+              homeHtmlCache = html;
+            }
+            let list = _pdfa(html, p0.replace('json:',''));
+            if (list && list.length > 0) {
+              classes = list;
+            }
+          }
+        } catch (e) {
+          console.log(e);
+        }
+      } else if(p.length >= 3 && !is_json) { // 可以不写正则
+        try {
+          let html = getHtml(homeObj.MY_URL);
+          if (html) {
+            homeHtmlCache = html;
+            let list = _pdfa(html, p0);
+            if (list && list.length > 0) {
+              list.forEach((it, idex) => {
+                try {
+                  let name = _pdfh(it, p[1]);
+                  if (homeObj.cate_exclude && (new RegExp(homeObj.cate_exclude).test(name))) {
+                    return;
+                  }
+                  let url = _pd(it, p[2]);
+                  if (p.length > 3 && p[3]) {
+                    let exp = new RegExp(p[3]);
+                    url = url.match(exp)[1];
+                  }
+
+                  classes.push({
+                    'type_id': url.trim(),
+                    'type_name': name.trim()
+                  });
+                } catch (e) {
+                  console.log(`分类列表定位第${idex}个元素正常报错:${e}`);
+                }
+              });
+            }
+          }
+        } catch (e) {
+          console.log(e);
+        }
       }
     }
   }
@@ -1307,6 +1363,15 @@ const homeVodParse = (homeVodObj) => {
   let t2 = Date.now();
   console.log(`[t3]加载首页推荐耗时:${t2 - t1}毫秒`);
 
+  if (rule["图片替换"] && rule["图片替换"].includes('=>')) {
+    const [replace_from, replace_to] = rule["图片替换"].split('=>');
+    d.forEach(it => {
+      if (it["vod_pic"] && it["vod_pic"].startsWith('http')) {
+        it["vod_pic"] = it["vod_pic"].replace(replace_from, replace_to);
+      }
+    });
+  }
+  
   if (rule["图片来源"]) {
     // @ts-ignore
     d.filter(it => it["vod_pic"] && it["vod_pic"].startsWith('http'))
@@ -1428,6 +1493,15 @@ const categoryParse = (cateObj) => {
     } catch (e) {
       console.log(e);
     }
+  }
+
+  if (rule["图片替换"] && rule["图片替换"].includes('=>')) {
+    const [replace_from, replace_to] = rule["图片替换"].split('=>');
+    d.forEach(it => {
+      if (it["vod_pic"] && it["vod_pic"].startsWith('http')) {
+        it["vod_pic"] = it["vod_pic"].replace(replace_from, replace_to);
+      }
+    });
   }
 
   if (rule["图片来源"]) {
@@ -1602,6 +1676,15 @@ const searchParse = (searchObj) => {
     }
   }
 
+  if (rule["图片替换"] && rule["图片替换"].includes('=>')) {
+    const [replace_from, replace_to] = rule["图片替换"].split('=>');
+    d.forEach(it => {
+      if (it["vod_pic"] && it["vod_pic"].startsWith('http')) {
+        it["vod_pic"] = it["vod_pic"].replace(replace_from, replace_to);
+      }
+    });
+  }
+
   if (rule["图片来源"]) {
     // @ts-ignore
     d.filter(it => it["vod_pic"] && it["vod_pic"].startsWith('http'))
@@ -1752,21 +1835,23 @@ const detailParse = (detailObj) => {
         let p_tab = p.tabs.split(';')[0];
         let vHeader = _pdfa(html, p_tab);
         let tab_text = p.tab_text || 'body&&Text';
-        // print('tab_text:'+tab_text);
         let new_map = {};
         for (let v of vHeader) {
           let v_title = _pdfh(v,tab_text).trim();
-          if(tab_exclude&& (new RegExp(tab_exclude)).test(v_title)){
+          if (!v_title) {
+            v_title = '线路空';
+          };
+          if (tab_exclude && (new RegExp(tab_exclude)).test(v_title)) {
             continue;
-          }
-          if(!new_map.hasOwnProperty(v_title)){
+          };
+          if (!new_map.hasOwnProperty(v_title)) {
             new_map[v_title] = 1;
-          }else{
+          } else {
             new_map[v_title] += 1;
-          }
-          if(new_map[v_title]>1){
+          };
+          if (new_map[v_title]>1) {
             v_title+=Number(new_map[v_title]-1);
-          }
+          };
           playFrom.push(v_title);
         }
       }
@@ -1836,10 +1921,14 @@ const detailParse = (detailObj) => {
     }
     vod["vod_play_url"] = vod_play_url;
   }
-  if(rule["图片来源"] && vod.vod_pic && vod.vod_pic.startsWith('http')){
+  if (rule["图片替换"] && rule["图片替换"].includes('=>')) {
+    const [replace_from, replace_to] = rule["图片替换"].split('=>');
+    vod.vod_pic = vod.vod_pic.replace(replace_from,replace_to);
+  }
+  if (rule["图片来源"] && vod.vod_pic && vod.vod_pic.startsWith('http')) {
     vod.vod_pic = vod.vod_pic + rule["图片来源"];
   }
-  if(!vod.vod_id||(vod_id.includes('$') && vod.vod_id!==vod_id)){
+  if (!vod.vod_id||(vod_id.includes('$') && vod.vod_id!==vod_id)) {
     vod.vod_id = vod_id;
   }
   let t2 = Date.now();
@@ -1936,24 +2025,26 @@ const tellIsJx = (url: string) => {
 const playParse = (playObj) => {
   fetch_params = JSON.parse(JSON.stringify(rule_fetch_params));
   MY_URL = playObj.url;
+  var MY_FLAG = playObj.flag;
   if (!/http/.test(MY_URL)) {
     try {
       MY_URL = base64Decode(MY_URL);
     } catch (e) {}
   }
   MY_URL = decodeURIComponent(MY_URL);
-  var input = MY_URL;  //注入给免嗅js
+  var input = MY_URL;  // 注入给免嗅js
+  var flag = MY_FLAG;  // 注入播放线路名称给免嗅js
 
   const common_play = {
     parse: 1,
     url: input,
+    flag:flag,
     jx: tellIsJx(input)
   };
 
   let lazy_play = common_play;
   if (rule["play_parse"] && rule["lazy"] && typeof rule["lazy"] === 'string') {
     try {
-      console.log(rule)
       const lazy_code = rule["lazy"].replace('js:','').trim();
       console.log('开始执行js免嗅=>' + lazy_code);
       eval(lazy_code);
@@ -2081,6 +2172,7 @@ const init = (ext) => {
     rule["detailUrl"] = rule["detailUrl"] || '';
     rule["searchUrl"] = rule["searchUrl"] || '';
     rule["homeUrl"] = rule["host"] && rule["homeUrl"] ? urljoin(rule["host"], rule["homeUrl"]) : (rule["homeUrl"] || rule["host"]);
+    rule["homeUrl"] = cheerio.jinja2(rule["homeUrl"], { rule: rule } );
     rule["detailUrl"] = rule["host"] && rule["detailUrl"] ? urljoin(rule["host"], rule["detailUrl"]) : rule["detailUrl"];
     rule["二级访问前"] = rule["二级访问前"] ||'';
     if(rule["url"].includes('[') && rule["url"].includes(']')){
@@ -2102,6 +2194,7 @@ const init = (ext) => {
     rule["encoding"] = rule["编码"] || rule["encoding"] || 'utf-8';
     rule["search_encoding"] = rule["搜索编码"] || rule["search_encoding"] || '';
     rule["图片来源"] = rule["图片来源"] || '';
+    rule["图片替换"] = rule["图片替换"] || '';
     rule["play_json"] = rule.hasOwnProperty('play_json') ? rule["play_json"] : [];
     rule["pagecount"] = rule.hasOwnProperty('pagecount') ? rule["pagecount"]: {};
     rule["proxy_rule"] = rule.hasOwnProperty('proxy_rule') ? rule["proxy_rule"] : '';
@@ -2145,7 +2238,7 @@ const init = (ext) => {
     // @ts-ignore
     RKEY = typeof key !=='undefined' && key ? key : 'drpy_' + (rule["title"] || rule["host"]);
     pre();
-    init_test();
+    return init_test();
   } catch (e) {
     console.info('[t3][init]init_test发生错误:', e);
   }
@@ -2298,13 +2391,13 @@ const search = (wd, quick, pg) => {
  * @param params 代理链接参数比如 /proxy?do=js&url=https://wwww.baidu.com => params就是 {do:'js','url':'https://wwww.baidu.com'}
  * @returns {*}
  */
-const proxy = (params: string) => {
-  let proxy_rule = rule["proxy_rul"]?.trim() || "";
-  
+const proxy = (params) => {
+  let proxy_rule = rule["proxy_rule"]?.trim() || "";
+
   if (proxy_rule.startsWith('js:')) {
     proxy_rule = proxy_rule.replace('js:', '');
   }
-  
+
   const proxyObj = {
     params: params,
     proxy_rule: proxy_rule
@@ -2380,5 +2473,6 @@ export {
   detail,
   play,
   search,
+  proxy,
   keepUnUse
 };

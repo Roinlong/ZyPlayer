@@ -1,7 +1,14 @@
-import _ from 'lodash';
 import { FastifyReply, FastifyPluginAsync, FastifyRequest } from 'fastify';
+import _ from 'lodash';
+import { nanoid } from 'nanoid';
 
 import { setting } from '../../db/service';
+
+interface SettingItem {
+  id: string;
+  key: string;
+  value: string;
+}
 
 const API_VERSION = "api/v1";
 
@@ -33,15 +40,18 @@ const api: FastifyPluginAsync = async (fastify): Promise<void> => {
   })
   fastify.put(`/${API_VERSION}/setting`, async (req: FastifyRequest<{ Querystring: { [key: string]: string } }>, reply: FastifyReply) => {
     try {
-      const destination = req.body;
-      const source = await setting.source();
+      const destination = req.body as Record<string, string>;
+      const source = await setting.source() as SettingItem[];
 
       for (let i in destination) {
         const index = _.findIndex(source, { key: i });
         if (index !== -1) {
           source[index]["value"] = destination[i];
+        } else {
+          source.push({ key: i, value: destination[i], id: nanoid() });
         }
       }
+
       const res = await setting.set(source);
       reply.code(200).send(res);
     } catch (err) {
@@ -53,23 +63,17 @@ const api: FastifyPluginAsync = async (fastify): Promise<void> => {
       const agreementMask = await setting.find({ key: "agreementMask"}).value;
       const theme = await setting.find({ key: "theme"}).value;
       const skipStartEnd = await setting.find({ key: "skipStartEnd"}).value;
-      const broadcasterType = await setting.find({ key: "broadcasterType"}).value;
-      const externalPlayer = await setting.find({ key: "externalPlayer"}).value;
-      const webdevUrl = await setting.find({ key: "webdevUrl"}).value;
-      const webdevUsername = await setting.find({ key: "webdevUsername"}).value;
-      const webdevPassword = await setting.find({ key: "webdevPassword"}).value;
+      const playerMode = await setting.find({ key: "playerMode"}).value;
+      const webdev = await setting.find({ key: "webdev"}).value;
+      const barrage = await setting.find({ key: "barrage"}).value;
       
       const res = {
         agreementMask,
         theme,
         skipStartEnd,
-        broadcasterType,
-        externalPlayer,
-        webdev: {
-          url: webdevUrl,
-          username: webdevUsername,
-          password: webdevPassword
-        }
+        playerMode,
+        webdev,
+        barrage
       };
       reply.code(200).send(res);
     } catch (err) {

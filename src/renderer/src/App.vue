@@ -4,11 +4,14 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive } from 'vue';
-import PLAY_CONFIG from '@/config/play';
-import { setup } from '@/api/setting';
-import DisclaimerView from '@/pages/Disclaimer.vue';
+import { computed, onMounted, reactive, ref, watch } from 'vue';
+
 import { usePlayStore, useSettingStore } from '@/store';
+import { setup } from '@/api/setting';
+import { autoSync } from '@/utils/webdev';
+import PLAY_CONFIG from '@/config/play';
+
+import DisclaimerView from '@/pages/Disclaimer.vue';
 
 const storePlayer = usePlayStore();
 const storeSetting = useSettingStore();
@@ -20,13 +23,30 @@ const isVisible = reactive({
 const theme = computed(() => {
   return storeSetting.getStateMode;
 });
+const webdev = computed(() => {
+  return storeSetting.webdev;
+});
+
+const intervalId = ref();
+
+watch(
+  () => webdev.value,
+  (val) => {
+    if (intervalId.value) clearInterval(intervalId.value);
+    if (val.sync) {
+      intervalId.value = setInterval(() => {
+        autoSync(val.data.url, val.data.username, val.data.password);
+      }, 1000 * 5 * 60);
+    }
+  }, { deep : true }
+);
 
 onMounted(() => {
   initConfig();
 });
 
 const initConfig = async () => {
-  const { agreementMask, theme, skipStartEnd, broadcasterType, externalPlayer, webdev } = await setup();
+  const { agreementMask, theme, skipStartEnd, playerMode, webdev, barrage } = await setup();
 
   storeSetting.updateConfig({ mode: theme });
   storeSetting.updateConfig({ webdev: webdev });
@@ -35,9 +55,9 @@ const initConfig = async () => {
   const init = {
     ...PLAY_CONFIG.setting,
   };
-  init.broadcasterType = broadcasterType;
+  init.playerMode = playerMode;
   init.skipStartEnd = skipStartEnd;
-  init.externalPlayer = externalPlayer;
+  init.barrage = barrage;
   storePlayer.updateConfig({ setting: init });
 }
 

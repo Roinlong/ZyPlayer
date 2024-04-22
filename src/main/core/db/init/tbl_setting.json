@@ -1,9 +1,12 @@
 [
   { "key": "version",
-    "value": "3.3.2"
+    "value": "3.3.4"
   },
   { "key": "theme",
     "value": "auto"
+  },
+  { "key": "lang",
+    "value": "zh_CN"
   },
   { "key": "defaultHot",
     "value": "kylive"
@@ -14,11 +17,13 @@
   { "key": "defaultSearchType",
     "value": "site"
   },
-  { "key": "defaultCheckModel",
-    "value": true
+  {
+    "key": "defaultViewCasual",
+    "value": ""
   },
-  { "key": "defaultChangeModel",
-    "value": false
+  {
+    "key": "defaultDanMuKu",
+    "value": ""
   },
   { "key": "defaultIptvEpg",
     "value": "http://diyp.112114.xyz/"
@@ -60,16 +65,6 @@
     "key": "defaultDrive",
     "value": ""
   },
-  { "key": "broadcasterType",
-    "value": "xgplayer"
-  },
-  {
-    "key": "externalPlayer",
-    "value": ""
-  },
-  { "key": "snifferType",
-    "value": "pie"
-  },
   { "key": "softSolution",
     "value": false
   },
@@ -91,14 +86,31 @@
   { "key": "ua",
     "value": ""
   },
-  { "key": "webdevUrl",
-    "value": "https://dav.jianguoyun.com/dav/"
+  { "key": "playerMode",
+    "value": {
+      "type": "xgplayer",
+      "external": ""
+    }
   },
-  { "key": "webdevUsername",
-    "value": ""
+  { "key": "snifferMode",
+    "value": {
+      "type": "pie",
+      "url": ""
+    }
   },
-  { "key": "webdevPassword",
-    "value": ""
+  { "key": "webdev",
+    "value": {
+      "sync": false,
+      "data": {
+        "url": "https://dav.jianguoyun.com/dav/",
+        "username": "",
+        "password": ""
+      }
+    }
+  },
+  {
+    "key": "barrage",
+    "value": { "url": "", "key": "", "support": "", "start": "", "mode": "", "color": "", "content": ""}
   },
   { "key": "windowPosition",
     "value": {
