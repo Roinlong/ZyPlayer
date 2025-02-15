@@ -1,11 +1,6 @@
 <template>
-  <t-popup
-    v-model:visible="formVisible"
-    :on-visible-change="onShareVisibleChange"
-    trigger="click"
-    placement="bottom"
-    :overlay-inner-style="{ boxShadow: 'none', padding: '0', borderRadius: '8px' }"
-  >
+  <t-popup v-model:visible="formVisible" :on-visible-change="onShareVisibleChange" trigger="click" placement="bottom"
+    :overlay-inner-style="{ boxShadow: 'none', padding: '0', borderRadius: '8px' }">
     <slot name="customize"></slot>
     <template #content>
       <div class="share-container">
@@ -18,18 +13,18 @@
               {{ $t('pages.share.headerInfoScan') }}
             </div>
             <div class="header-copyright text-hide">
-              <span>{{ data.provider }}</span>
+              <span>{{ formData.provider }}</span>
               <span>&nbsp;{{ $t('pages.share.headerCopyright') }}</span>
             </div>
             <t-divider dashed style="margin: 5px 0" />
           </div>
           <div class="share-container-main-right">
-            <qrcode-vue :value="data.url" :size="85" :margin="5" level="H" render-as="svg" class="qrcode" />
+            <qrcode-vue :value="formData.url" :size="85" :margin="3" render-as="svg" class="qrcode" />
           </div>
         </div>
-        <div class="bottom-title text-hide">{{ data.name }}</div>
+        <div class="bottom-title text-hide">{{ formData.name }}</div>
         <div class="bottom-copy">
-          <input v-model="data.url" class="input-url" readonly />
+          <input v-model="formData.url" class="input-url" readonly />
           <button class="btn-copy" @click="copyShareUrl">{{ $t('pages.share.copyUrl') }}</button>
         </div>
       </div>
@@ -61,8 +56,9 @@ const props = defineProps({
   },
 });
 
-const data = ref(props.data);
+const formData = ref(props.data);
 const formVisible = ref(false);
+const DEFAULT_SHARE_URL = 'https://web.zyplayer.fun/?url=';
 
 const emit = defineEmits(['update:visible']);
 
@@ -81,11 +77,12 @@ watch(
 watch(
   () => props.data,
   (val) => {
-    data.value = val;
+    formData.value = val;
+    formData.value.url = DEFAULT_SHARE_URL + formData.value.url + '&name=' + formData.value.name;
   },
 );
 
-const copyToClipboard = async(content, successMessage, errorMessage) => {
+const copyToClipboard = async (content, successMessage, errorMessage) => {
   const res = await copyToClipboardApi(content);
   if (res) {
     MessagePlugin.info(successMessage);
@@ -101,10 +98,10 @@ const onShareVisibleChange = (_, context) => {
 };
 
 // 复制分享地址
-const copyShareUrl = async() => {
+const copyShareUrl = async () => {
   const successMessage = t('pages.share.message.copySuccess');
   const errorMessage = t('pages.share.message.copyFail');
-  await copyToClipboard(data.value.url, successMessage, errorMessage);
+  await copyToClipboard(formData.value.url, successMessage, errorMessage);
 
   formVisible.value = false;
 };
@@ -134,6 +131,7 @@ const copyShareUrl = async() => {
 
     &-left {
       width: 210px;
+
       .header-name {
         font-size: 14px;
         line-height: 30px;
@@ -180,7 +178,7 @@ const copyShareUrl = async() => {
     width: 100%;
     text-align: right;
     vertical-align: middle;
-    background: var(--td-bg-content-input);
+    background: var(--td-bg-content-input-2);
     height: 32px;
     border-radius: var(--td-radius-round);
 
@@ -197,6 +195,7 @@ const copyShareUrl = async() => {
       position: absolute;
       left: 0;
     }
+
     .btn-copy {
       position: relative;
       right: 6px;
@@ -215,4 +214,3 @@ const copyShareUrl = async() => {
   }
 }
 </style>
-  

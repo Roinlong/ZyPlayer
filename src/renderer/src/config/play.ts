@@ -1,15 +1,21 @@
 export default {
-  type: 'film',
+  type: '',
+  status: false,
   setting: {
     playerMode: {
-      type: 'xgplayer',
-      external: ''
+      type: 'artplayer',
+      external: '',
     },
     snifferMode: {
       type: 'pie',
-      url: ''
+      url: '',
     },
-    skipStartEnd: true,
+    playConf: {
+      skipHeadAndEnd: false,
+      playNextPreload: false,
+      playNextEnabled: true,
+      skipAd: false,
+    },
     barrage: {
       url: '',
       key: '',
@@ -17,8 +23,8 @@ export default {
       start: '',
       mode: '',
       color: '',
-      content: ''
-    }
+      content: '',
+    },
   },
   data: {
     info: {},

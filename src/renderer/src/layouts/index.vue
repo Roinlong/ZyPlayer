@@ -1,7 +1,7 @@
 <template>
   <div class="layout">
     <t-layout>
-      <t-aside key="side" width="78px" :class="`${prefix}-aside`">
+      <t-aside key="side" :class="`${prefix}-aside`">
         <layout-side-nav :nav-data="sideMenu" />
       </t-aside>
       <t-layout>
@@ -19,28 +19,16 @@
 <script setup lang="ts">
 import '@/style/layout.less';
 
-import { storeToRefs } from 'pinia';
 import { computed } from 'vue';
 
+import { allRoutes } from '@/router';
 import { prefix } from '@/config/global';
-import { usePermissionStore } from '@/store';
 
 import LayoutContent from './components/Content.vue';
 import LayoutHeader from './components/Header.vue';
 import LayoutSideNav from './components/SideNav.vue';
 
-const permissionStore = usePermissionStore();
-const { routers: menuRouters } = storeToRefs(permissionStore);
-
-const sideMenu = computed(() => {
-  const newMenuRouters = menuRouters.value;
-  return newMenuRouters;
-});
+const sideMenu = computed(() => { return allRoutes });
 </script>
 
-<style lang="less" scoped>
-.t-layout {
-  background: var(--td-bg-aside);
-  overflow-x: hidden;
-}
-</style>
+<style lang="less" scoped></style>

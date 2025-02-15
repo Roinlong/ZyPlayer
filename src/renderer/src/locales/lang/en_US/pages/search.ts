@@ -1,7 +1,11 @@
 export default {
   film: 'film',
   iptv: 'iptv',
-  searchHistory: 'SearchHistory',
+  site: 'Local',
+  group: 'Group',
+  all: 'All',
+  searchHistory: 'Search History',
+  searchSource: 'Search Source',
   searchPlaceholder: 'Search resources',
-  hotNoData: 'No data for the past three days'
-}
+  hotNoData: 'No data for the past three days',
+};

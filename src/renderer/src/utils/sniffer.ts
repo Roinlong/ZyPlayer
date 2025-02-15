@@ -1,160 +1,134 @@
-import axios from 'axios';
-import { nanoid } from 'nanoid';
+import request from '@/utils/request';
+import { base64 } from '@/utils/crypto';
+import { usePlayStore } from '@/store';
 
-const { getCurrentWindow } = require('@electron/remote');
-const win = getCurrentWindow();
+const storePlayer = usePlayStore();
 
-// const videoFormats = ['.m3u8', '.mp4', '.flv', 'avi', 'mkv'];
-const urlRegex: RegExp = new RegExp('http((?!http).){12,}?\\.(m3u8|mp4|flv|avi|mkv|rm|wmv|mpg|m4a|mp3)\\?.*|http((?!http).){12,}\\.(m3u8|mp4|flv|avi|mkv|rm|wmv|mpg|m4a|mp3)|http((?!http).)*?video/tos*');
-const isExcludedUrl = (reqUrl) => {
-  return (
-    reqUrl.indexOf('url=http') >= 0 ||
-    reqUrl.indexOf('v=http') >= 0 ||
-    reqUrl.indexOf('.css') >= 0 ||
-    reqUrl.indexOf('.html') >= 0
-  );
-}
-
-const snifferPie = async (url: string): Promise<string> => {
-  console.log('[detail][sniffer][pie][start]: pie嗅探流程开始');
-  let data: string = '';
+const snifferPie = async (
+  url: string,
+  run_script: string,
+  init_script: string,
+  custom_regex: string,
+  sniffer_exclude: string,
+  headers: object = {},
+): Promise<{ url: string; headers: object }> => {
+  console.log('[sniffer][pie][start]: pie嗅探流程开始');
+  const data: { url: string; headers: object } = {
+    url: '',
+    headers: {},
+  };
 
   try {
-    const res = await window.electron.ipcRenderer.invoke('sniffer-media', url);
+    const res = await window.electron.ipcRenderer.invoke(
+      'sniffer-media',
+      url,
+      run_script,
+      init_script,
+      custom_regex,
+      sniffer_exclude,
+      headers,
+    );
 
+    if (res.code === 0) {
+      data.url = res.data.url;
+      data.headers = res.data.headers;
+      console.log(`[sniffer][pie][return]: pie嗅探流程返回链接:${JSON.stringify(data)}`);
+    } else if (res.code === -1) {
+      console.log(`[sniffer][pie][error]: pie嗅探流程错误:${res.msg}`);
+    }
+  } catch (err: any) {
+    console.log(err);
+    console.log(`[sniffer][pie][error]: pie嗅探流程错误:${err.message}`);
+  } finally {
+    console.log(`[sniffer][pie][end]: pie嗅探流程结束`);
+
+    return data;
+  }
+};
+
+const snifferCustom = async (
+  url: string,
+  run_script: string,
+  init_script: string,
+  sniffer_exclude: string,
+  custom_regex: string,
+  headers: object = {},
+): Promise<{ url: string; headers: object }> => {
+  console.log('[sniffer][snifferCustom][start]: pie嗅探流程开始');
+  const data: { url: string; headers: object } = {
+    url: '',
+    headers: {},
+  };
+  try {
+    const res = await request({
+      url: storePlayer.setting.snifferMode.url,
+      method: 'GET',
+      params: {
+        url,
+        script: run_script,
+        init_script,
+        custom_regex,
+        sniffer_exclude,
+      },
+    });
     if (res.code === 200) {
-      data = res.data.url;
-      console.log(`[detail][sniffer][pie][return]: pie嗅探流程返回链接:${data}`);
-    } else if (res.code === 500) {
-      console.log(`[detail][sniffer][pie][error]: pie嗅探流程错误:${res}`);
-    }
-  } catch (err) {
-    console.log(`[detail][sniffer][pie][error]: pie嗅探流程错误:${err}`);
-  } finally {
-    console.log(`[detail][sniffer][pie][end]: pie嗅探流程结束`);
-    return data;
-  }
-};
-
-const createIframe = (iframeId: string, url: string): Promise<{ iframeRef: HTMLIFrameElement, contentWindow: Window | null }> => {
-  return new Promise((resolve) => {
-    const iframeRef = document.createElement("iframe");
-    iframeRef.style.height = '0';
-    iframeRef.style.width = '0';
-    iframeRef.style.position = 'fixed';
-    iframeRef.style.top = '-10px';
-    iframeRef.style.left = '-10px';
-    iframeRef.id = iframeId;
-    iframeRef.setAttribute("frameborder", "0");
-    iframeRef.src = url;
-
-    iframeRef.onload = () => {
-      resolve({ iframeRef, contentWindow: iframeRef.contentWindow || null });
-    };
-
-    document.body.appendChild(iframeRef);
-  });
-};
-
-const removeIframe = (iframeId: string): void => {
-  const iframeRef = document.getElementById(iframeId);
-  if (iframeRef && iframeRef.parentNode) {
-    iframeRef.parentNode.removeChild(iframeRef);
-    
-    // 清理可能存在的事件监听器等
-    iframeRef.onload = null;
-    iframeRef.onerror = null;
-    iframeRef.onabort = null;
-  }
-};
-
-const snifferIframe = async (url: string, totalTime: number = 15000, speeder: number = 250): Promise<string> => {
-  win.webContents.setAudioMuted(true); // 静音
-  const iframeId = nanoid();
-  const iframeWindow = await createIframe(iframeId, url);
-
-  const totalCounter = totalTime / speeder; // 计算总次数
-
-  let counter = 1;
-  let snifferTimer;
-  let data = '';
-
-  const checkResourceName = (resourceName: string) => {
-    return resourceName.match(urlRegex) && !isExcludedUrl(resourceName);
-    // const formatIndex = videoFormats.findIndex((format) => resourceName.toLowerCase().includes(format));
-    // return formatIndex > -1;
-  };
-
-  const stopSniffer = () => {
-    clearInterval(snifferTimer);
-    removeIframe(iframeId);
-    win.webContents.setAudioMuted(false);
-  };
-
-  await new Promise((resolve) => {
-    snifferTimer = setInterval(async () => {
-      console.log(`[detail][sniffer][iframe][start]iframe嗅第${counter}次探流程开始`);
-
-      try {
-        const resources = iframeWindow.contentWindow!.performance.getEntriesByType('resource'); // 获取所有资源
-
-        for (const resource of resources) {
-          const resourceName = resource.name;
-          if (checkResourceName(resourceName)) {
-            data = resourceName;
-            console.log(`[detail][sniffer][iframe][return]iframe嗅探流程返回链接:${data}`);
-
-            stopSniffer();
-            resolve('');
-            return;
-          }
-        }
-      } catch (err) {
-        console.log(`[detail][sniffer][iframe][error]iframe第${counter}次嗅探发生错误:${err}`);
-      }
-
-      if (counter >= totalCounter) {
-        console.log(`[detail][sniffer][iframe][end]iframe嗅探超时结束`);
-        stopSniffer();
-        resolve('');
-      }
-
-      counter += 1;
-    }, speeder);
-  });
-
-
-  console.log(`[detail][sniffer][iframe][end]iframe嗅探流程结束`);
-  return data;
-};
-
-const snifferCustom = async (url: string): Promise<string> => {
-  let data: string = '';
-  try { 
-    const res = await axios.get(url);
-    if (res.data.code === 200) {
-      data = res.data.url;
-      console.log(`[detail][sniffer][custom][return]: custom嗅探流程返回链接:${data}`);
+      data.url = res.url;
+      data.headers = res.headers;
+      console.log(`[sniffer][custom][return]: custom嗅探流程返回链接:${data}`);
     } else {
-      console.log(`[detail][sniffer][custom][error]: custom嗅探流程错误:${res}`);
+      const err = res.msg;
+      console.log(`[sniffer][custom][error]: custom嗅探流程错误:${err}`);
     }
-  } catch (err) {
-    console.log(`[detail][sniffer][custom][error]: custom嗅探流程错误:${err}`);
+  } catch (err: any) {
+    console.log(err);
+    console.log(`[sniffer][custom][error]: custom嗅探流程错误:${err.message}`);
   } finally {
-    console.log(`[detail][sniffer][custom][end]: custom嗅探流程结束`);
+    console.log(`[sniffer][custom][end]: custom嗅探流程结束`);
     return data;
   }
-}
+};
 
 // 嗅探
-const sniffer = async (type: string, url: string): Promise<string> => {
-  let data: string = '';
-  if (type === 'iframe') {
-    data = await snifferIframe(url);
-  } else if (type === 'pie') {
-    data = await snifferPie(url);
+const sniffer = async (
+  url: string,
+  run_script: string = '',
+  init_script: string = '',
+  custom_regex: string = '',
+  sniffer_exclude: string = '',
+  headers: object = {},
+): Promise<{ headers: object; url: string; orgin: string }> => {
+  const runScript = encodeURIComponent(base64.encode(run_script));
+  const initScript = encodeURIComponent(base64.encode(init_script));
+
+  const data: { url: string; orgin: string; headers: object } = {
+    url: '',
+    orgin: url,
+    headers: {},
+  };
+
+  const format_rule = (rule) => {
+    if (rule.includes('*')) {
+      return (rule = rule.replace(/\*\./g, '.*\\.'));
+    } else {
+      return (rule = rule.replace(/\./g, '\\.'));
+    }
+  };
+
+  const type = storePlayer.setting.snifferMode.type;
+  if (type === 'pie') {
+    const res = await snifferPie(url, runScript, initScript, format_rule(custom_regex), format_rule(sniffer_exclude), headers);
+    data.url = res['url'];
+    data.headers = res['headers'];
   } else if (type === 'custom') {
-    data = await snifferCustom(url);
+    const res = await snifferCustom(
+      url,
+      runScript,
+      initScript,
+      format_rule(custom_regex),
+      format_rule(sniffer_exclude),
+    );
+    data.url = res['url'];
+    data.headers = res['headers'];
   }
   return data;
 };

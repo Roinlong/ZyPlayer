@@ -1,20 +1,21 @@
 export default {
   name: 'IPTV',
   delay: 'Delay',
+  unknown: 'Unknown',
   infiniteLoading: {
-    complete: 'load complete',
-    error: 'load error',
-    noMore: 'nothing more',
-    noData: 'no data, please go Setting-IptvSetting set default source'
+    complete: 'Load Complete',
+    error: 'Load Error',
+    noMore: 'Nothing More',
+    noData: 'No data, please go to [Settings->IptvConfig] to configure the data',
   },
   contextMenu: {
     copyChannel: 'Copy Channel',
-    delChannel: 'Delete Channel'
+    delChannel: 'Delete Channel',
   },
   message: {
-    setSucess: 'Setup sucess',
+    setSuccess: 'Setup success',
     setFail: 'Setup failure, error message',
-    copySucess: 'Copy success, quickly share to friends',
-    copyFail: "Current environment does't support copy. Please copy link manually"
-  }
-}
+    copySuccess: 'Copy success, quickly share to friends',
+    copyFail: "Current environment does't support copy. Please copy link manually",
+  },
+};

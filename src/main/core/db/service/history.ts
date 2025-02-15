@@ -1,59 +1,64 @@
-import _ from 'lodash';
-import db from '../index';
-
-const TABLE_NAME = 'tbl_history';
+import { and, desc, eq, like, inArray } from 'drizzle-orm';
+import { db, schema } from '../common';
 
 export default {
-  all () {
-    const db_res = db.get(TABLE_NAME).value();
-    return _.castArray(db_res);
+  async all() {
+    return await db.select().from(schema.history);
   },
-  update (id, doc) {
-    return db.get(TABLE_NAME).find({id}).assign(doc).write();
+  async update(ids, doc) {
+    return await db.update(schema.history).set(doc).where(inArray(schema.history.id, ids)).returning();
   },
-  clear () {
-    return db.set(TABLE_NAME, []).write();
+  async clear() {
+    return await db.delete(schema.history);
   },
-  set (docs) {
-    docs = _.castArray(docs);
-    return db.set(TABLE_NAME, docs).write();
+  async get(id) {
+    const res = await db.select().from(schema.history).where(eq(schema.history.id, id));
+    return res?.[0];
   },
-  clear_part (type) {
-    return db.get(TABLE_NAME).remove({ type }).write()
+  async find(relateId, videoId) {
+    const res = await db
+      .select()
+      .from(schema.history)
+      .where(and(eq(schema.history.relateId, relateId), eq(schema.history.videoId, videoId)));
+    return res?.[0];
   },
-  find (doc) {
-    return db.get(TABLE_NAME).find(doc).value();
+  async set(doc) {
+    await db.delete(schema.history);
+    return await db.insert(schema.history).values(doc);
   },
-  filter (doc) {
-    return db.get(TABLE_NAME).filter(doc).value();
+  async add(doc) {
+    return await db.insert(schema.history).values(doc).returning();
   },
-  get (id: string) {
-    return db.get(TABLE_NAME).find({ id }).value();
+  async remove(ids) {
+    return await db.delete(schema.history).where(inArray(schema.history.id, ids));
   },
-  add (doc) {
-    return db.get(TABLE_NAME).insert(doc).write();
+  async removeByType(type) {
+    return await db.delete(schema.history).where(eq(schema.history.type, type));
   },
-  remove (id: string) {
-    return db.get(TABLE_NAME).removeById(id).write();
-  },
-  pagination(pageIndex = 0, pageSize = 10, type = 'all') {
-    let data = [];
-    let total = 0;
-    const jumpCount = pageIndex * pageSize;
+  async page(page = 1, pageSize = 20, type = 'all', kw = '') {
+    const baseQuery = db.select().from(schema.history);
+    const conditions: any[] = [];
 
-    let items;
-    if (type === 'all') {
-      items = db.get(TABLE_NAME).orderBy('date', 'desc').value();
-    } else {
-      items = db.get(TABLE_NAME).filter({ type }).orderBy('date', 'desc').value();
-    };
+    if (type !== 'all') {
+      conditions.push(eq(schema.history.type, type));
+    }
+    if (kw) {
+      conditions.push(like(schema.history.videoName, `%${kw}%`));
+    }
 
-    data = _.slice(items, jumpCount, jumpCount + pageSize);
-    total = _.size(items);
+    let query = conditions.length > 0 ? baseQuery.where(and(...conditions)) : baseQuery;
+    query = query
+      .limit(pageSize)
+      .offset((page - 1) * pageSize)
+      .orderBy(desc(schema.history.date));
+    const list = await query;
+
+    const countQuery = conditions.length > 0 ? baseQuery.where(and(...conditions)) : baseQuery;
+    const total = await countQuery;
 
     return {
-      data: data,
-      total: total
-    }
-  }
-}
+      list: list,
+      total: total.length,
+    };
+  },
+};

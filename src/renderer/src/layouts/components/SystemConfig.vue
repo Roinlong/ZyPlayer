@@ -1,9 +1,9 @@
 <template>
-	<div class="system-config" @click="gotoSetting">
+  <div class="system-config" @click="gotoSetting">
     <t-button theme="default" shape="square" variant="text">
       <setting-icon />
     </t-button>
-	</div>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -25,9 +25,8 @@ const gotoSetting = () => {
     AnalyzeIndex: 'analyzeSource',
   }
   const defaultConfigSwitch = 'configBase'; // 设置一个默认值，用于处理不在 Match 中的 view_name
-  const sysConfigSwitch = Match[view_name] || defaultConfigSwitch;
+  const sysConfigSwitch = Match[view_name!] || defaultConfigSwitch;
   storeSetting.updateConfig({ sysConfigSwitch });
-  console.log(storeSetting.getSysConfigSwitch);
   router.push({ name: 'SettingIndex' });
 }
 </script>

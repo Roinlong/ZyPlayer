@@ -1,40 +1,34 @@
 <template>
   <div class="disclaimer view-container">
-    <t-dialog
+    <common-dialog
       v-model:visible="formVisible"
-      :close-btn="false"
       :close-on-esc-keydown="false"
-      :header="false"
       :close-on-overlay-click="false"
+      destroy-on-close
       :confirm-btn="$t('pages.md.privacyPolicy.confirm')"
       :cancel-btn="$t('pages.md.privacyPolicy.cancel')"
-      :on-confirm="confirmEvent"
-      :on-close="cancelEvent"
-      placement="center"
-      width="480px"
+      :on-confirm="confirmDisclaimer"
+      :on-close="cancelDisclaimer"
     >
-      <div class="privacy-policy">
-        <div class="header">{{ $t('pages.md.privacyPolicy.title') }}</div>
-        <div class="main-content">
-          <MdPreview 
-            editorId="privacy-policy"
-            :modelValue="$t('pages.md.privacyPolicy.content')"
-            previewTheme="vuepress"
-            :theme="theme"
-          />
-        </div>
-      </div>
-    </t-dialog>
+      <template #title>
+        <h1>{{ $t('pages.md.privacyPolicy.title') }}</h1>
+      </template>
+      <template #content>
+        <md-render :text="$t('pages.md.privacyPolicy.content')" />
+      </template>
+    </common-dialog>
   </div>
 </template>
-<script setup lang="ts">
-import 'md-editor-v3/lib/style.css';
-import { MessagePlugin } from 'tdesign-vue-next';
-import { computed, ref, watch } from 'vue';
-import { MdPreview } from 'md-editor-v3';
 
-import { useSettingStore } from '@/store';
-import { setDefault } from '@/api/setting';
+<script setup lang="ts">
+import { MessagePlugin } from 'tdesign-vue-next';
+import { ref, watch } from 'vue';
+
+import { t } from '@/locales';
+import { putSetting } from '@/api/setting';
+
+import CommonDialog from '@/components/common-setting/note/index.vue';
+import MdRender from '@/components/markdown-render/index.vue';
 
 const props = defineProps({
   visible: {
@@ -42,12 +36,10 @@ const props = defineProps({
     default: false,
   },
 });
-const storeSetting = useSettingStore();
-const theme = computed(() => {
-  return storeSetting.displayMode;
-});
 const formVisible = ref(false);
+
 const emit = defineEmits(['update:visible']);
+
 watch(
   () => formVisible.value,
   (val) => {
@@ -61,68 +53,22 @@ watch(
   },
 );
 
-const confirmEvent = () => {
+const confirmDisclaimer = () => {
   updateAgreementMask(true);
   formVisible.value = false;
 };
 
 const updateAgreementMask = async (status) => {
-  await setDefault("agreementMask", status)
+  await putSetting({ key: "agreementMask", doc: status });
 };
 
-const cancelEvent = () => {
+const cancelDisclaimer = () => {
   updateAgreementMask(false);
-  MessagePlugin.warning({ content: '5秒后自动退出软件', duration: 5000 });
+  MessagePlugin.warning({ content: t('pages.md.privacyPolicy.quitTip'), duration: 5000 });
   setTimeout(() => {
     window.electron.ipcRenderer.send('quit-app');
   }, 5000);
 };
 </script>
 
-<style lang="less" scoped>
-.view-container {
-  :deep(.t-dialog) {
-    .t-dialog__footer {
-      display: flex;
-      justify-content: space-around;
-      .t-button {
-        width: 180px;
-        height: 45px;
-        border-radius: 25px;
-        font-weight: 700;
-        font-size: 15px;
-        line-height: 45px;
-      }
-    }
-  }
-  .privacy-policy {
-    opacity: 1;
-    .header {
-      margin-top: 45px;
-      font-weight: 700;
-      font-size: 28px;
-      text-align: center;
-      color: var(--td-text-color-primary);
-    }
-    .main-content {
-      height: 280px;
-      margin: 15px auto 10px;
-      overflow-y: auto;
-    }
-  }
-  :deep(.md-editor-preview-wrapper) {
-    padding: 0;
-    .md-editor-preview {
-      color: var(--td-text-color-primary);
-      blockquote {
-        margin: 0;
-      }
-      p, li {
-        font-weight: 500;
-        font-size: 14px;
-        line-height: 22px;
-      }
-    }
-  }
-}
-</style>
+<style lang="less" scoped></style>

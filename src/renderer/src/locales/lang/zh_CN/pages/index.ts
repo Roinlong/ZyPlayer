@@ -11,6 +11,9 @@ import search from './search';
 import md from './md';
 import justlook from './justlook';
 import share from './share';
+import contextMenu from './contextMenu';
+import playShow from './playShow';
+import lab from './lab';
 
 export default {
   player,
@@ -25,5 +28,8 @@ export default {
   search,
   md,
   justlook,
-  share
+  share,
+  contextMenu,
+  playShow,
+  lab,
 };

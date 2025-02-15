@@ -7,16 +7,17 @@ export default {
   history: {
     title: 'History',
     clear: 'Clear',
-    cancel: 'Cancel'
+    cancel: 'Cancel',
   },
   dialog: {
     cancel: 'Cancel',
     confirm: 'Confirm',
     header: 'Delete the record',
-    body: 'Are you sure you want to delete all records? Recovery is not supported after deletion.'
+    body: 'Are you sure you want to delete all records? Recovery is not supported after deletion.',
   },
   search: {
     input: 'Enter keyword to search',
+    enter: 'Enter',
     clear: 'Clear',
     tip: 'Enter {0} to quickly search source, for example',
     watch: 'watch all about',
@@ -31,12 +32,13 @@ export default {
   },
   message: {
     invalidApi: 'Invalid parsing interface',
-    info: 'The current video loaded. If the fails, please switch other line',
-    empty: 'Please select the parsing interface or enter the address first'
+    info: 'The current video is loading, please be patient',
+    error: 'Load failed, try switching to another interface',
+    empty: 'Please select the parsing interface or enter the address first',
   },
   inputUrl: 'Enter a link to make the world full of love',
   infiniteLoading: {
-    complete: 'load complete',
-    error: 'load error'
-  }
-}
+    complete: 'Load Complete',
+    error: 'Load Error',
+  },
+};

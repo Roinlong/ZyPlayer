@@ -1,58 +1,71 @@
 import request from '@/utils/request';
 
-// 获取iptv列表
-export function fetchDriveList() {
+export function addDrive(doc: object) {
   return request({
-    url: '/v1/drive/list',
-    method: 'get',
-    params: {
-      timestamp: new Date().getTime(),
-    }
-  })
+    url: `/v1/drive`,
+    method: 'post',
+    data: doc,
+  });
 }
 
-// 获取site活跃列表
+export function delDrive(doc: object) {
+  return request({
+    url: `/v1/drive`,
+    method: 'delete',
+    data: doc,
+  });
+}
+
+export function putDrive(doc: object) {
+  return request({
+    url: `/v1/drive`,
+    method: 'put',
+    data: doc,
+  });
+}
+
+export function putDriveDefault(id: string) {
+  return request({
+    url: `/v1/drive/default/${id}`,
+    method: 'put',
+  });
+}
+
 export function fetchDriveActive() {
   return request({
     url: '/v1/drive/active',
     method: 'get',
-    params: {}
-  })
+  });
 }
 
-// drive分页
-export function fetchDrivePage(kw: string) {
+export function fetchDrivePage(doc: object) {
   return request({
     url: `/v1/drive/page`,
     method: 'get',
-    params: {
-      kw
-    }
-  })
+    params: doc,
+  });
 }
 
-// drive修改
-export function updateDriveItem(id, doc) {
+export function putAlistInit(doc: object) {
   return request({
-    url: `/v1/drive/${id}`,
-    method: 'put',
-    data: doc
-  })
+    url: `/v1/alist/init`,
+    method: 'get',
+    params: doc,
+  });
 }
 
-// drive删除
-export function delDriveItem(id) {
+export function fetchAlistDir(doc: object) {
   return request({
-    url: `/v1/drive/${id}`,
-    method: 'delete',
-  })
+    url: `/v1/alist/dir`,
+    method: 'get',
+    params: doc,
+  });
 }
 
-// drive添加
-export function addDriveItem(doc) {
+export function fetchAlistFile(doc: object) {
   return request({
-    url: `/v1/drive`,
-    method: 'post',
-    data: doc
-  })
+    url: `/v1/alist/file`,
+    method: 'get',
+    params: doc,
+  });
 }

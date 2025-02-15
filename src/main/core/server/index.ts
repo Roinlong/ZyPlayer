@@ -1,29 +1,40 @@
-import { app } from "electron";
+import { app } from 'electron';
 import fastify from 'fastify';
-import fastifyLogger from "fastify-logger";
-import { JsonDB, Config } from 'node-json-db';
-import { join } from "path";
-import logger from '../logger';
-import { analyze, iptv, setting, drive, site, history, star, db, proxy, catbox, cache, lab } from './routes';
-import initConfig from './routes/catbox/config';
+import fastifyCors from '@fastify/cors';
+import fastifyMultipart from '@fastify/multipart';
+import fastifyLogger from 'fastify-logger';
+import fastifyPlugin from 'fastify-plugin';
 
-logger.info('[server] fastify module initialized');
+import { JsonDB, Config } from 'node-json-db';
+import { join } from 'path';
+import logger from '@main/core/logger';
+import routesV1Modules from './routes/v1';
+
+async function jsonDbPlugin(fastify) {
+  const db = new JsonDB(new Config(join(app.getPath('userData'), 'cache.json'), true, true, '/'));
+  fastify.decorate('db', db);
+}
+
+const wrappedJsonDbPlugin = fastifyPlugin(jsonDbPlugin, {
+  fastify: '5.x',
+  name: 'json-db-plugin',
+});
 
 let logOpt = {
-  console: true, // 是否开启console.log 。。。
-  file: join(app.getPath("userData"), 'logs/fastify.log'), // 文件路径  
+  console: true,
+  file: join(app.getPath('userData'), 'logs/fastify.log'), // 文件路径
   maxBufferLength: 4096, // 日志写入缓存队列最大长度
   flushInterval: 1000, // flush间隔
-  logrotator: { // 分割配置
+  logrotator: {
     byHour: false,
-    byDay: true,    
-    hourDelimiter: '_'
-  }
-}
+    byDay: true,
+    hourDelimiter: '_',
+  },
+};
 const { opt } = fastifyLogger(logOpt);
 opt.stream = null;
 
-const initServer = async () => {
+const setup = async () => {
   const server = fastify({
     logger: opt, // 是否开启日志
     forceCloseConnections: true, // 是否强制关闭连接
@@ -33,36 +44,32 @@ const initServer = async () => {
   });
 
   try {
-    server.addHook('onError', async (_request, _reply, error) => {
-      logger.error(error);
-      if (!error.statusCode) error.statusCode = 500;
-      return error;
+    server.setErrorHandler((error, _request, reply) => {
+      server.log.error(error);
+
+      reply.status(500).send({
+        code: -1,
+        msg: `Internal Server Error - ${error.name}`,
+        data: error.message,
+      });
     });
 
-    server.decorate('config', initConfig);
-    server.decorate('db', new JsonDB(new Config(join(app.getPath("userData"), "cache.json"), true, true, '/')));
+    server.register(wrappedJsonDbPlugin);
+    server.register(fastifyMultipart);
+    server.register(fastifyCors);
 
-    server.get('/', async (_, reply) => {
-      reply.code(200).send({status: 'run'})
-    })
-    server.register(analyze);
-    server.register(iptv);
-    server.register(setting);
-    server.register(drive);
-    server.register(site);
-    server.register(history);
-    server.register(star);
-    server.register(db);
-    server.register(proxy);
-    server.register(catbox);
-    server.register(cache);
-    server.register(lab);
+    // 注册 v1 路由
+    Object.keys(routesV1Modules).forEach((key) => {
+      server.register(routesV1Modules[key]);
+    });
 
+    await server.ready();
     await server.listen({ port: 9978, host: '0.0.0.0' });
+    logger.info('[server][init] listen: http://0.0.0.0:9978');
   } catch (err) {
     server.log.error(err);
     process.exit(1);
   }
-}
+};
 
-export default initServer;
+export default setup;
