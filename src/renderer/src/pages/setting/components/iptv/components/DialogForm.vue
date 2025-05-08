@@ -1,17 +1,25 @@
 <template>
   <t-dialog
     v-model:visible="formVisible"
-    :header="formType === 'add' ? $t('pages.setting.dialog.add') : $t('pages.setting.dialog.edit')"
-    :width="650"
+    show-in-attached-element
+    attach="#main-component"
     placement="center"
-    :footer="false"
-    @close="onClose"
+    width="50%"
   >
+    <template #header>
+      {{ formType === 'add' ? $t('pages.setting.dialog.add') : $t('pages.setting.dialog.edit') }}
+    </template>
     <template #body>
-      <t-form ref="form" :data="formData.data" :rules="RULES" :label-width="60" @submit="onSubmit" @reset="onReset">
+      <t-form ref="formRef" :data="formData.data" :rules="RULES" :label-width="60">
         <t-form-item :label="$t('pages.setting.iptv.name')" name="name">
           <t-input v-model="formData.data.name" class="input-item" :placeholder="$t('pages.setting.placeholder.general')" />
         </t-form-item>
+        <div class="key-group">
+          <t-form-item :label="$t('pages.setting.site.key')" name="key" style="flex: 1">
+            <t-input v-model="formData.data.key" :placeholder="$t('pages.setting.placeholder.general')" />
+          </t-form-item>
+          <t-button theme="default" @click="randomKeyEvent">{{ $t('pages.setting.random') }}</t-button>
+        </div>
         <t-form-item :label="$t('pages.setting.iptv.config')" name="url">
           <div class="input-vertical-item">
             <t-radio-group v-model="formData.data.type" variant="default-filled" >
@@ -35,23 +43,22 @@
         <t-form-item :label="$t('pages.setting.iptv.epg')" name="epg">
           <t-input v-model="formData.data.epg" class="input-item" :placeholder="$t('pages.setting.placeholder.general')" />
         </t-form-item>
-
-        <div class="optios">
-          <t-form-item style="float: right">
-            <t-button variant="outline" type="reset">{{ $t('pages.setting.dialog.reset') }}</t-button>
-            <t-button theme="primary" type="submit">{{ $t('pages.setting.dialog.confirm') }}</t-button>
-          </t-form-item>
-        </div>
       </t-form>
+    </template>
+    <template #footer>
+      <t-button variant="outline" @click="onReset">{{ $t('pages.setting.dialog.reset') }}</t-button>
+      <t-button theme="primary" @click="onSubmit">{{ $t('pages.setting.dialog.confirm') }}</t-button>
     </template>
   </t-dialog>
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue';
+import { ref, useTemplateRef, watch } from 'vue';
+import { FormInstanceFunctions, FormProps, MessagePlugin } from 'tdesign-vue-next';
+import { v4 as uuidv4 } from 'uuid';
+import { cloneDeep } from 'lodash-es';
 import { t } from '@/locales';
 
-const remote = window.require('@electron/remote');
 const props = defineProps({
   visible: {
     type: Boolean,
@@ -66,12 +73,13 @@ const props = defineProps({
     default: 'add'
   },
 });
-const formVisible = ref(false);
+const formRef = useTemplateRef<FormInstanceFunctions>('formRef');
+const formVisible = ref<Boolean>(false);
 const formData = ref({
-  data: { ...props.data },
-  raw: { ...props.data },
+  data: cloneDeep(props.data),
+  raw: cloneDeep(props.data),
 });
-const formType = ref(props.type);
+const formType = ref<string>(props.type);
 
 const emits = defineEmits(['update:visible', 'submit']);
 
@@ -91,8 +99,8 @@ watch(
   () => props.data,
   (val) => {
     formData.value = {
-      data: { ...val },
-      raw: { ...val },
+      data: cloneDeep(val),
+      raw: cloneDeep(val),
     };
   },
 );
@@ -103,38 +111,52 @@ watch(
   },
 );
 
-const onSubmit = async ({ validateResult }) => {
-  if (validateResult === true) {
-    emits('submit', 'table', formData.value.data);
-    formVisible.value = false;
-  };
+const randomKeyEvent = () => {
+  formData.value.data.key = uuidv4();
 };
 
-const onReset = () => {
+const onSubmit: FormProps['onSubmit'] = async () => {
+  formRef.value?.validate().then((validateResult) => {
+    if (validateResult && Object.keys(validateResult).length) {
+      const firstError = Object.values(validateResult)[0]?.[0]?.message;
+      MessagePlugin.warning(firstError);
+    } else {
+      emits('submit', 'table', formData.value.data);
+      formVisible.value = false;
+    }
+  });
+};
+
+const onReset: FormProps['onReset'] = () => {
   formData.value.data = { ...formData.value.raw };
 };
 
-const onClose = () => {
-  onReset();
-};
+const uploadFileEvent = async () => {
+  try {
+    const res = await window.electron.ipcRenderer.invoke('manage-dialog', {
+      action: 'showOpenDialog',
+      config: {
+        properties: ['openFile', 'showHiddenFiles'],
+        filters: [
+          { name: 'M3u Files', extensions: ['m3u', 'm3u8','ts'] },
+          { name: 'Text Files', extensions: ['txt'] },
+          { name: 'All Files', extensions: ['*'] }
+        ],
+      }
+    });
+    if (!res || res.canceled || !res.filePaths.length) return;
 
-const uploadFileEvent = () => {
-  remote.dialog.showOpenDialog({
-    properties: ['openFile']
-  }).then(result => {
-    if (result.canceled) {
-      console.log('用户取消了选择');
-    } else {
-      console.log('选中的文件路径:', result.filePaths);
-      formData.value.data.url = result.filePaths[0];
-    }
-  }).catch(err => {
-    console.log('出现错误:', err);
-  });
+    formData.value.data.url = res.filePaths[0] || '';
+    MessagePlugin.success(t('pages.setting.data.success'));
+  } catch (err: any) {
+    console.error(`[uploadFileEvent] err:`, err);
+    MessagePlugin.error(`${t('pages.setting.data.fail')}: ${err.message}`);
+  }
 };
 
 const RULES = {
   name: [{ required: true, message: t('pages.setting.dialog.rule.message'), type: 'error' }],
+  key: [{ required: true, message: t('pages.setting.dialog.rule.message'), type: 'error' }],
   url: [{ required: true, message: t('pages.setting.dialog.rule.message'), type: 'error' }],
 };
 </script>
@@ -154,7 +176,11 @@ const RULES = {
   width: 100%;
 }
 
-// .input-textarea {
-//   width: calc(518px - var(--td-size-2)) !important;
-// }
+.key-group {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: var(--td-comp-margin-m);
+  gap: 10px;
+  align-items: center;
+}
 </style>

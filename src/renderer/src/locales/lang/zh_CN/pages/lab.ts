@@ -9,6 +9,13 @@ export default {
     snifferPlay: '嗅探播放',
     pluginCenter: '插件中心',
   },
+  req: {
+    title: '请求参数',
+    reqEncode: '编码',
+    reqHeader: '请求头',
+    reqBody: '请求体',
+    contentType: '类型',
+  },
   jsEdit: {
     import: '导入',
     export: '导出',
@@ -62,10 +69,12 @@ export default {
     action: {
       init: '初始化',
       mode: '模式',
-      currentStatus: '当前状态',
+      status: '状态',
       manual: '手动',
       auto: '自动',
-      t3: 'T3',
+      log: '日志',
+      t3js: 'T3Js',
+      t3py: 'T3Py',
       t4: 'T4',
       source: '源码',
       obtain: '获取',
@@ -110,6 +119,7 @@ export default {
     message: {
       openDevTools: '目前只能通过开发者工具->控制台查看日志',
       modeT4: 'T4模式需配合插件使用, 请先确认已安装插件, 且插件目录为drpy-node, 并启动运行状态',
+      modeT3py: 'T3-Py模式需配合python环境使用, 请先确认已安装python环境, 并安装依赖',
       htmlNoUrl: '地址为空',
       ruleNoHtml: '必须先获取源代码',
       ruleNoRule: '规则为空',
@@ -173,15 +183,6 @@ export default {
       filterTip: '选择器(如 body&&.scroll-content) 同一类型用;分割 不同类型换行',
       filterInfoTip: '详细筛选(key;name;type;title;url) 一行对应一个',
     },
-    dialog: {
-      request: {
-        title: '请求参数',
-        reqEncode: '响应编码',
-        reqHeader: '请求头',
-        reqBody: '请求体',
-        cancel: '重置',
-      },
-    },
     message: {
       htmlNoUrl: '地址为空',
       inputNoClassParse: '参数大类为空',
@@ -194,7 +195,7 @@ export default {
     title: 'Ai-创想无限',
     declare: '内容由 AI 大模型生成，请仔细甄别',
     params: 'OpenAI参数',
-    server: '服务器',
+    server: '接口',
     key: '密钥',
     model: '模型',
     tip1: 'OpenAI官方的APIKey',
@@ -212,12 +213,16 @@ export default {
     fetchTip: '输入一些需求...',
     codeSnippetTip: '输入html代码片段',
     setting: '设置',
+    reason: '推理',
+    reasoning: '推理中...',
+    reasoned: '已深度思考',
     message: {
       contentEmpty: '内容为空',
       aiParmsEmpty: 'AI参数为空',
     },
     placeholder: {
       send: '给 AI 发送消息',
+      input: '请输入内容...',
     },
     platform: {
       title: '平台',
@@ -398,6 +403,7 @@ export default {
       update: '更新',
       install: '安装',
       uninstall: '卸载',
+      uninstallTip: '卸载后将无法使用, 请谨慎操作',
       cancelTip: '当前插件存在未执行完命令, 请稍后',
       devtoolDomAttchErrTip: '打开开发者工具失败, DOM未挂载到页面上',
       loadUiEntryError: '加载入口失败',

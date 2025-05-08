@@ -2,7 +2,6 @@ import { FastifyPluginAsync, FastifyRequest } from 'fastify';
 import { v4 as uuidv4 } from 'uuid';
 import { join, relative, basename, extname, dirname } from 'path';
 import {
-  APP_STORE_PATH,
   fileExist,
   fileState,
   readFile,
@@ -14,9 +13,10 @@ import {
   fileStateSync,
   readFileSync,
 } from '@main/utils/hiker/file';
+import { APP_FILE_PATH } from '@main/utils/hiker/path';
 
 const API_PREFIX = 'api/v1/file';
-const APP_FILE_PATH = join(APP_STORE_PATH, 'file');
+const FILE_PATH = APP_FILE_PATH;
 
 const api: FastifyPluginAsync = async (fastify): Promise<void> => {
   fastify.delete(`/${API_PREFIX}/*`, async (req: FastifyRequest<{ Params: { [key: string]: string } }>) => {
@@ -40,6 +40,50 @@ const api: FastifyPluginAsync = async (fastify): Promise<void> => {
       };
     }
   });
+  fastify.get(`/${API_PREFIX}/:dir/config`, async (req: FastifyRequest<{ Params: { [key: string]: string } }>) => {
+    const reqDir = req.params['dir'] || '';
+    const doc: { [key: string]: any[] } = {
+      sites: [],
+    };
+
+    const walk = async (directoryPath: string, rootDirectory: string) => {
+      const stat = await fileState(directoryPath);
+      if (stat === 'dir') {
+        const files = await readDir(directoryPath);
+        if (!files || files.length === 0) return;
+
+        for (const file of files) {
+          const filePath = join(directoryPath, file);
+          const stat = await fileState(filePath);
+
+          if (stat === 'dir') {
+            await walk(filePath, rootDirectory);
+          } else if (stat === 'file') {
+            if (/\.(js|py)(?:\?.*)?$/.test(filePath)) {
+              const relativePath = relative(rootDirectory, filePath);
+              const fileName = basename(relativePath, extname(relativePath));
+
+              doc.sites.push({
+                id: uuidv4(),
+                key: uuidv4(),
+                name: fileName,
+                type: 3,
+                api: `http://127.0.0.1:9978/api/v1/file/${relativePath}`,
+                searchable: 1,
+                quickSearch: 0,
+                filterable: 1,
+                ext: `./${basename(relativePath)}`,
+              });
+            }
+          }
+        }
+      }
+    };
+
+    await walk(join(FILE_PATH, reqDir), FILE_PATH);
+
+    return doc;
+  });
   fastify.get(`/${API_PREFIX}/*`, async (req: FastifyRequest<{ Params: { [key: string]: string } }>) => {
     const pathLib = {
       join,
@@ -50,13 +94,13 @@ const api: FastifyPluginAsync = async (fastify): Promise<void> => {
     }; // 注入给index.js文件main函数里使用
 
     const fileName = req.params['*'];
-    const exists = await fileExist(join(APP_FILE_PATH, fileName));
+    const exists = await fileExist(join(FILE_PATH, fileName));
 
     let response: any = '';
     if (exists) {
-      const stats = await fileState(join(APP_FILE_PATH, fileName));
+      const stats = await fileState(join(FILE_PATH, fileName));
       if (stats === 'dir') {
-        const indexPath = join(APP_FILE_PATH, fileName, './index.js');
+        const indexPath = join(FILE_PATH, fileName, './index.js');
         const indexStats = await fileState(indexPath);
 
         if (indexStats === 'file') {
@@ -82,7 +126,7 @@ const api: FastifyPluginAsync = async (fastify): Promise<void> => {
           };
         }
       } else if (stats === 'file') {
-        response = await readFile(join(APP_FILE_PATH, fileName));
+        response = await readFile(join(FILE_PATH, fileName));
       }
       return response;
     } else {
@@ -92,49 +136,6 @@ const api: FastifyPluginAsync = async (fastify): Promise<void> => {
         data: null,
       };
     }
-  });
-  fastify.get(`/${API_PREFIX}/config`, async () => {
-    const doc: { [key: string]: any[] } = {
-      sites: [],
-    };
-
-    const walk = async (directoryPath: string, rootDirectory: string) => {
-      const stat = await fileState(directoryPath);
-      if (stat === 'dir') {
-        const files = await readDir(directoryPath);
-        if (!files || files.length === 0) return;
-
-        for (const file of files) {
-          const filePath = join(directoryPath, file);
-          const stat = await fileState(filePath);
-
-          if (stat === 'dir') {
-            await walk(filePath, rootDirectory);
-          } else if (stat === 'file') {
-            if (/\.js(?:\?.*)?$/.test(filePath)) {
-              const relativePath = relative(rootDirectory, filePath);
-              const fileName = basename(relativePath, extname(relativePath));
-
-              doc.sites.push({
-                id: uuidv4(),
-                key: uuidv4(),
-                name: fileName,
-                type: 3,
-                api: `http://127.0.0.1:9978/api/v1/file/${relativePath}`,
-                searchable: 1,
-                quickSearch: 0,
-                filterable: 1,
-                ext: `./${relativePath}`,
-              });
-            }
-          }
-        }
-      }
-    };
-
-    await walk(APP_FILE_PATH, APP_FILE_PATH);
-
-    return doc;
   });
 };
 

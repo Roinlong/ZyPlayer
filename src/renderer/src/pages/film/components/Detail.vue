@@ -18,21 +18,24 @@
             </div>
             <div class="right">
               <div class="info">
-                <p class="name txthide">{{ infoConf.vod_name }}</p>
+                <p class="title txthide">{{ infoConf.vod_name }}</p>
                 <p class="info-item txthide">
-                  <span class="label">{{ $t('pages.film.info.release') }}: {{ infoConf?.vod_year || $t('pages.film.info.unknown') }}</span>
+                  <span class="name">{{ $t('pages.film.info.release') }}: </span>
+                  <span class="role">{{ formatContent(infoConf?.vod_year) || $t('pages.film.info.unknown') }}</span>
                 </p>
                 <p class="info-item txthide">
-                  <span class="label">{{ $t('pages.film.info.type') }}: {{ infoConf?.type_name || $t('pages.film.info.unknown') }}</span>
+                  <span class="name">{{ $t('pages.film.info.type') }}: </span>
+                  <span class="role">{{ formatContent(infoConf?.type_name) || $t('pages.film.info.unknown') }}</span>
                 </p>
                 <p class="info-item txthide">
-                  <span class="label">{{ $t('pages.film.info.area') }}: {{ infoConf?.vod_area || $t('pages.film.info.unknown') }}</span>
+                  <span class="name">{{ $t('pages.film.info.area') }}: </span>
+                  <span class="role">{{ formatContent(infoConf?.vod_area) || $t('pages.film.info.unknown') }}</span>
                 </p>
               </div>
-              <div class="add-box" @click="putBinge(false)">
+              <div class="add-box" @click="putBinge">
                 <div class="add">
-                  <heart-icon class="icon" v-if="active.binge" />
-                  <heart-filled-icon class="icon" v-else />
+                  <heart-filled-icon class="icon" v-if="active.binge" />
+                  <heart-icon class="icon" v-else />
                 </div>
               </div>
             </div>
@@ -102,16 +105,14 @@ import {
 import { MessagePlugin } from 'tdesign-vue-next';
 import { ref, watch, computed } from 'vue';
 import { fetchAnalyzeActive } from '@/api/analyze';
+import { fetchBingeData, putBingeData, fetchHistoryData, putHistoryData } from '@/utils/common/chase';
 import {
   VIP_LIST,
-  fetchBingeData,
-  putBingeData,
-  fetchHistoryData,
-  putHistoryData,
   playHelper,
   reverseOrderHelper,
   formatName,
   formatIndex,
+  formatContent,
   formatSeason,
   formatReverseOrder
 } from '@/utils/common/film';
@@ -227,10 +228,10 @@ const callPlay = async (item) => {
   } else {
     analyzeType = -1;
   }
-  const response = await playHelper(url, { ...extConf.value.site }, active.value.flimSource, analyzeType, false);
+  const response = await playHelper(url, extConf.value.site, active.value.flimSource, analyzeType, false);
   if (response?.url) {
     const { playerMode } = extConf.value.setting;
-    window.electron.ipcRenderer.send('call-player', playerMode.external, response.url);
+    window.electron.ipcRenderer.invoke('call-player', { path: playerMode.external, url: response.url });
     putHistory();
   };
 };
@@ -258,51 +259,41 @@ const switchSeasonEvent = (item) => {
 const fetchBinge = async () => {
   const { key } = extConf.value.site;
   const { vod_id } = infoConf.value;
-  const response = await fetchBingeData(key, vod_id);
-  bingeData.value = response.data;
-  active.value.binge = !response.status;
+
+  const response = await fetchBingeData(key, vod_id, ['film']);
+  const { code } = response;
+
+  if (code === 0) {
+    bingeData.value = response.data;
+    active.value.binge = response.status;
+  }
 };
 
 // 更新收藏
-const putBinge = async (update: boolean = false) => {
-  const constructDoc = () => ({
-    relateId: extConf.value.site.key,
-    videoId: infoConf.value.vod_id,
-    videoImage: infoConf.value.vod_pic,
-    videoName: infoConf.value.vod_name,
-    videoType: infoConf.value.type_name,
-    videoRemarks: infoConf.value.vod_remarks,
-  });
+const putBinge = async () => {
+  const { id = null } = bingeData.value;
+  const { key } = extConf.value.site;
+  const { vod_id, vod_pic, vod_name, type_name, vod_remarks } = infoConf.value;
+  const doc = {
+    date: moment().unix(),
+    type: 'film',
+    relateId: key,
+    videoId: vod_id,
+    videoImage: vod_pic,
+    videoName: vod_name,
+    videoType: type_name,
+    videoRemarks: vod_remarks,
+  };
 
   let response: any;
+  if (id) response = await putBingeData('del', {}, id);
+  else response = await putBingeData('add', doc, null);
+  const { code, data, status } = response;
 
-  if (bingeData.value?.id) {
-    if (update) {
-      response = await putBingeData('update', bingeData.value.id, constructDoc());
-      if (response?.data) bingeData.value = response.data;
-    } else {
-      response = await putBingeData('del', bingeData.value.id, {});
-      bingeData.value = {
-        relateId: null,
-        videoId: 0,
-        videoImage: '',
-        videoName: '',
-        videoType: '',
-        videoRemarks: '',
-        id: null,
-      };
-    }
-  } else if (!update) {
-    response = await putBingeData('add', '', constructDoc());
-    if (response?.data) bingeData.value = response.data;
+  if (code === 0) {
+    bingeData.value = data;
+    active.value.binge = status;
   }
-
-  if (response && !response.status) {
-    MessagePlugin.error(t('pages.player.message.error'));
-    return;
-  }
-
-  if (!update) active.value.binge = !active.value.binge;
 };
 
 // 剧集顺序
@@ -317,33 +308,51 @@ const reverseOrderEvent = () => {
 
 // 获取历史
 const fetchHistory = async () => {
-  const response = await fetchHistoryData(extConf.value.site.key, infoConf.value.vod_id);
-  if (response.siteSource) active.value.flimSource = response.siteSource;
-  if (response.videoIndex) active.value.filmIndex = response.videoIndex;
-  if (!response.siteSource) response.siteSource = active.value.flimSource;
-  if (!response.videoIndex) response.videoIndex = active.value.filmIndex;
-  historyData.value = response;
+  const { key } = extConf.value.site;
+  const { vod_id } = infoConf.value;
+
+  const response = await fetchHistoryData(key, vod_id, ['film']);
+  const { code, data, status } = response;
+
+  if (code === 0 && status) {
+    if (data.siteSource) active.value.flimSource = data.siteSource;
+    if (data.videoIndex) active.value.filmIndex = data.videoIndex;
+    if (!data.siteSource) data.siteSource = active.value.flimSource;
+    if (!data.videoIndex) data.videoIndex = active.value.filmIndex;
+    historyData.value = data;
+  }
 };
 
 // 更新历史
 const putHistory = async () => {
+  const { id = null } = historyData.value;
+  const { key } = extConf.value.site;
+  const { vod_id, vod_pic, vod_name } = infoConf.value;
+  const { flimSource, filmIndex } = active.value;
   const doc = {
     date: moment().unix(),
     type: 'film',
-    relateId: extConf.value.site.key,
-    siteSource: active.value.flimSource,
+    relateId: key,
+    siteSource: flimSource,
     playEnd: false,
-    videoId: infoConf.value['vod_id'],
-    videoImage: infoConf.value['vod_pic'],
-    videoName: infoConf.value['vod_name'],
-    videoIndex: active.value.filmIndex,
+    videoId: vod_id,
+    videoImage: vod_pic,
+    videoName: vod_name,
+    videoIndex: filmIndex,
     watchTime: 0,
     duration: 0,
     skipTimeInStart: 30,
     skipTimeInEnd: 30,
   };
-  const response: any = await putHistoryData(historyData.value?.id, doc);
-  historyData.value = response;
+
+  let response: any;
+  if (id) response = await putHistoryData('put', doc, id);
+  else response = await putHistoryData('add', doc, null);
+  const { code, data, status } = response;
+
+  if (code === 0 && status) {
+    historyData.value = data;
+  }
 };
 
 // 获取播放源及剧集
@@ -501,7 +510,7 @@ const setup = async () => {
       }
 
       .info {
-        .name {
+        .title {
           margin-bottom: var(--td-comp-margin-s);
           color: var(--td-text-color-primary);
           font-weight: 700;

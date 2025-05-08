@@ -5,6 +5,16 @@
         <h3 class="title">{{ $t('pages.lab.jsEdit.title') }}</h3>
       </div>
       <div class="right-operation-container">
+        <t-button class="mode-toogle" theme="default" @click="handleModeToggle">
+          <div class="status">
+            <span class="title">{{ $t('pages.lab.jsEdit.action.mode') }}</span>
+            <span class="desc">
+              {{ $t('pages.lab.jsEdit.action.status') }}:
+              {{ form.init.mode }}
+            </span>
+          </div>
+        </t-button>
+
         <t-radio-group variant="default-filled" v-model="active.nav" @change="handleOpChange">
           <t-radio-button value="template">{{ $t('pages.lab.jsEdit.template') }}</t-radio-button>
           <t-select v-model="tmp.file" auto-width @change="handleOpFileChange">
@@ -20,25 +30,24 @@
           v-model:visible="active.template"
           :header="$t('pages.lab.jsEdit.template')"
           show-in-attached-element
-          width="40%"
+          attach="#main-component"
           @confirm="confirmTemplate()"
         >
-          <p>{{ $t('pages.lab.jsEdit.templateTip') }}</p>
-          <t-select v-model="form.template">
-            <t-option v-for="(item, index) in Object.keys(mubanData)" :key="index" :value="item" :label="item" />
-          </t-select>
+          <t-form ref="formRef" :data="form" :rules="TEMPLATE_RULES" :label-width="60">
+            <t-form-item name="template" label-width="0px">
+              <t-select v-model="form.template">
+                <t-option v-for="(item, index) in Object.keys(mubanData)" :key="index" :value="item" :label="item" />
+              </t-select>
+            </t-form-item>
+          </t-form>
         </t-dialog>
       </div>
     </div>
     <div class="content">
-      <t-split
-        direction="vertical"
-        default-size="0.7"
-        class="split-pane"
-      >
-        <template #first>
-          <t-split class="split-pane">
-            <template #first>
+      <splitpanes class="default-theme split-pane" horizontal>
+        <pane size="70">
+          <splitpanes class="default-theme split-pane">
+            <pane>
               <div class="editor-pane">
                 <t-tabs v-model="active.editor" theme="card" lazy class="editor-pane-tabs">
                   <t-tab-panel :label="$t('pages.lab.jsEdit.editor.js')" value="js">
@@ -61,8 +70,8 @@
                   </t-tab-panel>
                 </t-tabs>
               </div>
-            </template>
-            <template #second>
+            </pane>
+            <pane>
               <t-tabs v-model="active.action" theme="card" lazy>
                 <t-tab-panel :label="$t('pages.lab.jsEdit.debug.dom')" value="dom">
                   <div class="dom_debug">
@@ -100,7 +109,7 @@
                         <div class="status">
                           <span class="title">{{ $t('pages.lab.jsEdit.action.init') }}</span>
                           <span class="desc">
-                            {{ $t('pages.lab.jsEdit.action.currentStatus') }}:
+                            {{ $t('pages.lab.jsEdit.action.status') }}:
                             {{
                               form.init.auto
                                 ? $t('pages.lab.jsEdit.action.auto')
@@ -112,22 +121,9 @@
                           <gesture-click-icon />
                         </div>
                       </t-button>
-
-                      <t-button class="button init w-btn" theme="default" @click="handleModeToggle">
-                        <div class="status">
-                          <span class="title">{{ $t('pages.lab.jsEdit.action.mode') }}</span>
-                          <span class="desc">
-                            {{ $t('pages.lab.jsEdit.action.currentStatus') }}:
-                            {{
-                              form.init.mode === 't3'
-                                ? $t('pages.lab.jsEdit.action.t3')
-                                : $t('pages.lab.jsEdit.action.t4')
-                            }}
-                          </span>
-                        </div>
+                      <t-button class="button init w-btn" theme="default" @click="handleDataDebugLog">
+                        {{ $t('pages.lab.jsEdit.action.log') }}
                       </t-button>
-
-                      <t-button class="button init w-btn" theme="default" @click="handleDataDebugLog" v-show="form.init.mode === 't3'">日志</t-button>
                     </div>
                     <div class="item">
                       <t-button class="button w-btn" theme="default" @click="handleDataDebugHome">
@@ -243,49 +239,49 @@
                         <t-button theme="default" shape="square" size="small" variant="text" @click="handleWebviewControl('forward')">
                           <arrow-right-icon />
                         </t-button>
-                        <t-button theme="default" shape="square" size="small" variant="text" @click="handleWebviewControl('reload')">
+                        <t-button theme="default" shape="square" size="small" variant="text" @click="handleWebviewControl('refresh')">
                           <rotate-icon />
                         </t-button>
                       </div>
-                      <t-input class="urlbar-url" v-model="webview.url" @enter="handleWebviewLoad"></t-input>
+                      <t-input class="urlbar-url" v-model="controlText" @enter="handleWebviewLoad"></t-input>
                       <t-button variant="text" class="urlbar-devtool" @click="handleWebviewControl('devtools')">F12</t-button>
                     </div>
-                    <webview ref="webviewRef" class="webview-box" :src="webview.route" disablewebsecurity allowpopups nodeIntegration style="height: 100%; width: 100%;"/>
+                    <webview v-if="isWebviewVisible" ref="webviewRef" class="webview-box" src="about:blank" partition="persist:js-edit" allowpopups />
                   </div>
                 </t-tab-panel>
               </t-tabs>
-            </template>
-          </t-split>
-        </template>
-        <template #second>
+            </pane>
+          </splitpanes>
+        </pane>
+        <pane>
           <div class="console-pane">
             <div class="console-root">
               <div class="header-name">{{ $t('pages.lab.jsEdit.console.title') }}</div>
-              <div class="header-clear" @click="handleConsoleClear">{{ $t('pages.lab.jsEdit.console.clear') }}</div>
+              <div class="header-clear" @click="handleConsoleClear"><clear-icon /></div>
             </div>
             <div class="log-pane-content">
               <div class="log-box" ref="logRef"></div>
             </div>
           </div>
-        </template>
-      </t-split>
+        </pane>
+      </splitpanes>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import 'luna-object-viewer/luna-object-viewer.css';
-import 'luna-data-grid/luna-data-grid.css';
-import 'luna-dom-viewer/luna-dom-viewer.css';
-import 'luna-console/luna-console.css';
+import '@xterm/xterm/css/xterm.css';
+import 'splitpanes/dist/splitpanes.css';
 
+import { Terminal } from '@xterm/xterm';
+import { FitAddon } from '@xterm/addon-fit';
 import moment from 'moment';
 import JSON5 from 'json5';
-import LunaConsole from 'luna-console';
-import { computed, ref, onMounted, watch, useTemplateRef, nextTick, shallowRef } from 'vue';
+import { Splitpanes, Pane } from 'splitpanes';
+import { computed, nextTick, onActivated, onBeforeUnmount, onMounted, ref, useTemplateRef, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { MessagePlugin } from 'tdesign-vue-next';
-import { GestureClickIcon, ArrowLeftIcon, ArrowRightIcon, RotateIcon } from 'tdesign-icons-vue-next';
+import { GestureClickIcon, ArrowLeftIcon, ArrowRightIcon, ClearIcon, RotateIcon } from 'tdesign-icons-vue-next';
 import { t } from '@/locales';
 import { useSettingStore } from '@/store';
 import emitter from '@/utils/emitter';
@@ -293,6 +289,7 @@ import { CodeEditor } from '@/components/code-editor';
 import { setT3Proxy } from '@/api/proxy';
 import { addSite, putSite } from '@/api/site';
 import { fetchJsEditPdfa, fetchJsEditPdfh, fetchJsEditMuban, fetchJsEditDebug } from '@/api/lab';
+import { fetchLog, clearLog } from '@/api/plugin';
 import { fetchCmsHome, fetchCmsHomeVod, fetchCmsDetail, fetchCmsCategory, fetchCmsPlay, fetchCmsSearch, fetchCmsInit, fetchCmsRunMain, putSiteDefault, fetchCmsProxy } from '@/api/site';
 // import { aes } from '@/utils/crypto';
 // import { fetchConfig } from '@/api/setting';
@@ -300,11 +297,18 @@ import { getOriginalJs } from './utils/crypto';
 import reqHtml from '../reqHtml/index.vue';
 import drpySuggestions from './utils/drpy_suggestions';
 import drpyObjectInner from './utils/drpy_object_inner.ts?raw';
-import TSplit from '@/components/split/index.vue';
 
-const remote = window.require('@electron/remote');
+const TEMPLATE_RULES = {};
+
 const router = useRouter();
 const storeSetting = useSettingStore();
+
+const theme = computed(() => storeSetting.displayTheme);
+const tmp = computed(() => {
+  return {
+    file: t('pages.lab.jsEdit.fileManage'),
+  };
+});
 const logRef = useTemplateRef('logRef');
 const form = ref({
   content: {
@@ -329,7 +333,7 @@ const form = ref({
   },
   category: {
     t: '',
-    f: '',
+    f: '{}',
     pg: 1,
   },
   search: {
@@ -354,13 +358,13 @@ const form = ref({
   },
   init: {
     auto: false,
-    mode: 't3',
+    mode: 't3js',
     log: false,
   },
 });
 const EDIT_CONF = {
   readOnly: false,
-  theme: storeSetting.displayMode === 'light' ? 'vs' : 'vs-dark',
+  theme: theme.value === 'light' ? 'vs' : 'vs-dark',
   wordWrap: 'on',
   automaticLayout: true,
   folding: true,
@@ -381,17 +385,9 @@ const htmlEditConf = ref({
   ...EDIT_CONF,
   language: 'html',
 });
-const webviewRef = ref<any>(null);
-const webview = ref({
-  url: 'about:blank',
-  route: 'about:blank',
-});
-const log = shallowRef<any>(null);
-const tmp = computed(() => {
-  return {
-    file: t('pages.lab.jsEdit.fileManage'),
-  };
-});
+const controlText = ref<string>('');
+const webviewRef = useTemplateRef<Electron.WebviewTag | null>('webviewRef');
+const isWebviewVisible = ref<boolean>(true);
 const active = ref({
   nav: '',
   template: false,
@@ -400,12 +396,33 @@ const active = ref({
 });
 const mubanData = ref({});
 const debugId = ref('');
+const terminal = ref<Terminal>();
+const fitAddon = ref<FitAddon>();
 
 watch(
-  () => storeSetting.displayMode,
+  () => theme.value,
   (val) => {
     jsEditConf.value.theme = val === 'light' ? 'vs' : 'vs-dark';
     htmlEditConf.value.theme = val === 'light' ? 'vs' : 'vs-dark';
+
+    if (terminal.value) {
+      terminal.value.options.theme = {
+        ...terminal.value.options.theme,
+        foreground: val === 'light' ? '#000000' : '#ffffff'
+      };
+    }
+  }
+);
+watch(
+  () => form.value.init.mode,
+  (mode) => {
+    if (mode === 't3js') {
+      jsEditConf.value.language = 'javascript';
+    } else if (mode === 't3py') {
+      jsEditConf.value.language = 'python';
+    } else {
+      jsEditConf.value.language = 'javascript';
+    }
   }
 );
 watch(
@@ -415,6 +432,16 @@ watch(
     form.value.lastEditTime.edit = currentTime;
   }
 );
+watch(
+  () => active.value.action,
+  (val) => {
+    if (val === 'preview' && !!controlText.value) {
+      nextTick(() => {
+        validateAndRecoverWebview();
+      });
+    }
+  }
+);
 
 onMounted(() => {
   setupConsole();
@@ -422,20 +449,39 @@ onMounted(() => {
   setupData();
 });
 
+onActivated(() => {
+  if (active.value.action === 'preview') validateAndRecoverWebview();
+});
+
+onBeforeUnmount(() => {
+  if (fitAddon.value && logRef.value) logResizeObserver.unobserve(logRef.value);
+  if (terminal.value) terminal.value.dispose();
+});
+
+// ResizeObserver 监听终端容器的大小变化
+const logResizeObserver = new ResizeObserver(() => {
+  // console.log('resize');
+  if (fitAddon.value) fitAddon.value.fit();
+});
+
 // common
 const utilsReadFile = async(filePath: string) =>{
-  const fs = remote.require('fs').promises;
-  return await fs.readFile(filePath, 'utf-8');
+  return await window.electron.ipcRenderer.invoke('manage-file', { action: 'read', config: { path: filePath }});
 };
 
-const utilsWriteFile = async (filePath: string, val: string) => {
-  const fs = remote.require('fs').promises;
-  await fs.writeFile(filePath, val, 'utf-8');
+const utilsWriteFile = async (filePath: string, content: string) => {
+  return await window.electron.ipcRenderer.invoke('manage-file', { action: 'write', config: { path: filePath, content: content }});
 };
 
-const utilsT3BasePath = async () => {
+const utilsT3JsBasePath = async () => {
   const userDataPath = await window.electron.ipcRenderer.invoke('get-app-path', 'userData');
   const defaultPath = await window.electron.ipcRenderer.invoke('path-join', userDataPath, `file/drpy_dzlive/drpy_js/`);
+  return defaultPath;
+};
+
+const utilsT3PyBasePath = async () => {
+  const userDataPath = await window.electron.ipcRenderer.invoke('get-app-path', 'userData');
+  const defaultPath = await window.electron.ipcRenderer.invoke('path-join', userDataPath, `file/py/`);
   return defaultPath;
 };
 
@@ -447,8 +493,10 @@ const utilsT4BasePath = async () => {
 
 const utilsBasePath = async () => {
   const type = form.value.init.mode;
-  if (type === 't3') {
-    return await utilsT3BasePath();
+  if (type === 't3js') {
+    return await utilsT3JsBasePath();
+  } else if (type === 't3py') {
+    return await utilsT3PyBasePath();
   } else if (type === 't4') {
     return await utilsT4BasePath();
   }
@@ -494,6 +542,30 @@ const utilsDecode = async (content: string) => {
   return await utilsLocal(content);
 };
 
+const utilsReadT3JsFile = async () =>{
+  try {
+    const basePath = await utilsT3JsBasePath();
+    const defaultPath = await window.electron.ipcRenderer.invoke('path-join', basePath, `debug.js`);
+    const content = await utilsReadFile(defaultPath);
+    return content;
+  } catch (err) {
+    console.error(`[utilsReadT3JsFile][Error]:`, err);
+    return '';
+  }
+};
+
+const utilsReadT3PyFile = async () =>{
+  try {
+    const basePath = await utilsT3PyBasePath();
+    const defaultPath = await window.electron.ipcRenderer.invoke('path-join', basePath, `debug.py`);
+    const content = await utilsReadFile(defaultPath);
+    return content;
+  } catch (err) {
+    console.error(`[utilsReadT3PyFile][Error]:`, err);
+    return '';
+  }
+};
+
 const utilsReadT4File = async () =>{
   try {
     const basePath = await utilsT4BasePath();
@@ -503,6 +575,41 @@ const utilsReadT4File = async () =>{
   } catch (err) {
     console.error(`[utilsReadT4File][Error]:`, err);
     return '';
+  }
+};
+
+const utilsRead = async () => {
+  const type = form.value.init.mode;
+  if (type === 't3js') {
+    return await utilsReadT3JsFile();
+  } else if (type === 't3py') {
+    return await utilsReadT3PyFile();
+  } else if (type === 't4') {
+    return await utilsReadT4File();
+  }
+};
+
+const utilsWriteT3JsFile = async (val: string) =>{
+  try {
+    const basePath = await utilsT3JsBasePath();
+    const defaultPath = await window.electron.ipcRenderer.invoke('path-join', basePath, `debug.js`);
+    await utilsWriteFile(defaultPath, val);
+    return true;
+  } catch (err) {
+    console.error(`[utilsWriteT3JsFile][Error]:`, err);
+    return false;
+  }
+};
+
+const utilsWriteT3PyFile = async (val: string) =>{
+  try {
+    const basePath = await utilsT3PyBasePath();
+    const defaultPath = await window.electron.ipcRenderer.invoke('path-join', basePath, `debug.py`);
+    await utilsWriteFile(defaultPath, val);
+    return true;
+  } catch (err) {
+    console.error(`[utilsWriteT3PyFile][Error]:`, err);
+    return false;
   }
 };
 
@@ -518,35 +625,174 @@ const utilsWriteT4File = async (val: string) =>{
   }
 };
 
-const sitePutJs = async () => {
+const utilsWrite = async (val: string) => {
+  const type = form.value.init.mode;
+  if (type === 't3js') {
+    return await utilsWriteT3JsFile(val);
+  } else if (type === 't3py') {
+    return await utilsWriteT3PyFile(val);
+  } else if (type === 't4') {
+    return await utilsWriteT4File(val);
+  }
+};
+
+const utilsGetLogT3Js = async () =>{
+  try {
+    const res = await fetchCmsRunMain({
+      func: "function main() { return getLogRecord() }",
+      arg: "",
+      sourceId: debugId.value
+    });
+    return res;
+  } catch (err) {
+    console.error(`[utilsGetLogT3Js][Error]:`, err);
+    return [];
+  }
+};
+
+const utilsGetLogT3Py = async () =>{
+  try {
+    const res = await fetchCmsRunMain({
+      func: "function main() { return getLogRecord() }",
+      arg: "",
+      sourceId: debugId.value
+    });
+    return res;
+  } catch (err) {
+    console.error(`[utilsGetLogT3Py][Error]:`, err);
+    return [];
+  }
+};
+
+const utilsGetLogT4 = async () =>{
+  try {
+    const res = await fetchLog('drpy-node');
+    return res;
+  } catch (err) {
+    console.error(`[utilsGetLogT4][Error]:`, err);
+    return [];
+  }
+};
+
+const utilsGetLog = async () => {
+  const type = form.value.init.mode;
+  if (type === 't3js') {
+    return await utilsGetLogT3Js();
+  } else if (type === 't3py') {
+    return await utilsGetLogT3Py();
+  } else if (type === 't4') {
+    return await utilsGetLogT4();
+  }
+};
+
+const utilsClearLogT3Js = async () =>{
+  try {
+    const res = await fetchCmsRunMain({
+      func: "function main() { return clearLogRecord() }",
+      arg: "",
+      sourceId: debugId.value
+    });
+    return res;
+  } catch (err) {
+    console.error(`[utilsClearLogT3Js][Error]:`, err);
+    return [];
+  }
+};
+
+const utilsClearLogT3Py = async () =>{
+  try {
+    const res = await fetchCmsRunMain({
+      func: "function main() { return clearLogRecord() }",
+      arg: "",
+      sourceId: debugId.value
+    });
+    return res;
+  } catch (err) {
+    console.error(`[utilsClearLogT3Py][Error]:`, err);
+    return [];
+  }
+};
+
+const utilsClearLogT4 = async () =>{
+  try {
+    const res = await clearLog('drpy-node');
+    return res;
+  } catch (err) {
+    console.error(`[utilsClearLogT4][Error]:`, err);
+    return [];
+  }
+};
+
+const utilsClearLog = async () => {
+  const type = form.value.init.mode;
+  if (type === 't3js') {
+    return await utilsClearLogT3Js();
+  } else if (type === 't3py') {
+    return await utilsClearLogT3Py();
+  } else if (type === 't4') {
+    return await utilsClearLogT4();
+  }
+};
+
+const utilsPutSiteT3Js = async (id: string, content: string) => {
+  await utilsWriteT3JsFile(content);
+  await putSite({ ids: [id], doc: { type: 7, api: './drpy.min.js', ext: 'http://127.0.0.1:9978/api/v1/file/drpy_dzlive/drpy_js/debug.js' } });
+};
+
+const utilsPutSiteT3Py = async (id: string, content: string) => {
+  await utilsWriteT3PyFile(content);
+  await putSite({ ids: [id], doc: { type: 12, api: 'http://127.0.0.1:9978/api/v1/file/py/debug.py', ext: '' } });
+};
+
+const utilsPutSiteT4 = async (id: string, content: string) => {
+  await utilsWriteT4File(content);
+  await putSite({ ids: [id], doc: { type: 6, api: 'http://127.0.0.1:5757/api/debug', ext: '' } });
+};
+
+const utilsPutSite = async () => {
   const type = form.value.init.mode;
   const content = form.value.content.js;
-
-  if (type === 't3') {
-    await putSite({ ids: [debugId.value], doc: { ext: content, type: 7, api: 'csp_DRPY' } });
+  const id = debugId.value;
+  if (type === 't3js') {
+    return await utilsPutSiteT3Js(id, content);
+  } else if (type === 't3py') {
+    return await utilsPutSiteT3Py(id, content);
   } else if (type === 't4') {
-    await utilsWriteT4File(content);
-    await putSite({ ids: [debugId.value], doc: { type: 6, api: 'http://127.0.0.1:5757/api/debug' } });
+    return await utilsPutSiteT4(id, content);
   }
 };
 
 const setupData = async () => {
   const debugRes = await fetchJsEditDebug();
+  const typeMap = {
+    7: 't3js',
+    12: 't3py',
+    6: 't4',
+  };
+
   if (debugRes?.id) {
     debugId.value = debugRes.id;
     const type = debugRes.type;
-    form.value.init.mode = type === 7 ? 't3' : 't4';
-    if (type === 7) {
-      form.value.content.js = debugRes.ext;
-    } else {
-      form.value.content.js = await utilsReadT4File();
-    }
+    const mode = typeMap[type];
+    form.value.init.mode = mode;
+    form.value.content.js = await utilsRead();
   } else {
+    const mode = form.value.init.mode;
     const siteRes = await addSite({
       name: 'debug',
       key: 'debug',
-      type: form.value.init.mode === 't3' ? 7 : 6,
-      api: form.value.init.mode === 't3' ? 'csp_DRPY' : 'http://127.0.0.1:5757/api/debug',
+      // @ts-ignore
+      type: ((mode) => {
+        if (mode === 't3js') return 7;
+        else if (mode === 't3py') return 12;
+        else if (mode === 't4') return 6;
+      })(mode),
+      // @ts-ignore
+      api: ((mode) => {
+        if (mode === 't3js') return './drpy.min.js';
+        else if (mode === 't3py') return 'http://127.0.0.1:9978/api/v1/file/py/debug.py';
+        else if (mode === 't4') return 'http://127.0.0.1:5757/api/debug';
+      })(mode),
       search: 1,
       playUrl: '',
       group: 'debug',
@@ -581,65 +827,73 @@ const confirmTemplate = () => {
 
 const handleImportFile = async () => {
   try {
-    const basePath = await utilsBasePath();
-    const { canceled, filePaths } = await remote.dialog.showOpenDialog(remote.getCurrentWindow(), {
-      defaultPath: basePath,
-      filters: [
-        { name: 'JavaScript Files', extensions: ['js'] },
-        { name: 'Text Files', extensions: ['txt'] },
-        { name: 'All Files', extensions: ['*'] },
-      ],
-      properties: ['openFile'],
+    const res = await window.electron.ipcRenderer.invoke('manage-dialog', {
+      action: 'showOpenDialog',
+      config: {
+        properties: ['openFile', 'showHiddenFiles'],
+        filters: [
+          { name: 'JavaScript Files', extensions: ['js'] },
+          { name: 'Py Files', extensions: ['py'] },
+          { name: 'All Files', extensions: ['*'] }
+        ],
+      }
+    });
+    if (!res || res.canceled || !res.filePaths.length) return;
+
+    const fileContent = await window.electron.ipcRenderer.invoke('manage-file', {
+      action: 'read',
+      config: {
+        path: res.filePaths[0],
+      }
     });
 
-    if (!canceled && filePaths) {
-      const filePath = filePaths[0];
-      const content = await utilsReadFile(filePath);
-      form.value.content.js = content;
-      MessagePlugin.success(t('pages.setting.data.success'));
-    };
+    form.value.content.js = fileContent || '';
+    MessagePlugin.success(t('pages.setting.data.success'));
   } catch (err: any) {
-    console.error(`[exportFileEvent][Error]:`, err);
+    console.error(`[handleImportFile] err:`, err);
     MessagePlugin.error(`${t('pages.setting.data.fail')}: ${err.message}`);
   }
 };
 
-const handleexportFile = async () => {
-  const content = (form.value.content.js || '').trim();
-
-  if (!content) {
-    MessagePlugin.warning(t('pages.lab.jsEdit.message.initNoData'));
-    return;
-  };
-
-  const title = (() => {
-    try {
-      return (
-        content.match(/title:(.*?),/)?.[1].replace(/['"]/g, '').trim() || 'source'
-      );
-    } catch {
-      return 'source';
-    }
-  })();
-
+const handleExportFile = async () => {
   try {
+    const content = (form.value.content.js || '').trim();
+
+    if (!content) {
+      MessagePlugin.warning(t('pages.lab.jsEdit.message.initNoData'));
+      return;
+    };
+
     const basePath = await utilsBasePath();
-    const defaultPath = await window.electron.ipcRenderer.invoke('path-join', basePath, `${title}.js`);
-    const { canceled, filePath } = await remote.dialog.showSaveDialog(remote.getCurrentWindow(), {
-      defaultPath,
-      filters: [
-        { name: 'JavaScript Files', extensions: ['js'] },
-        { name: 'Text Files', extensions: ['txt'] },
-        { name: 'All Files', extensions: ['*'] },
-      ],
+    let defaultPath = '';
+    if (form.value.init.mode === 't3py') {
+      defaultPath = await window.electron.ipcRenderer.invoke('path-join', basePath, `source.py`);
+    } else {
+      const title = content.match(/title:(.*?),/)?.[1]?.replace(/['"]/g, '')?.trim() || 'source';
+      defaultPath = await window.electron.ipcRenderer.invoke('path-join', basePath, `${title}.js`);
+    }
+
+    const res = await window.electron.ipcRenderer.invoke('manage-dialog', {
+      action: 'showSaveDialog',
+      config: {
+        defaultPath: defaultPath,
+        properties: ['showHiddenFiles'],
+      }
+    });
+    if (!res || res.canceled || !res.filePath) return;
+
+    const writeStatus = await window.electron.ipcRenderer.invoke('manage-file', {
+      action: 'write',
+      config: {
+        path: res.filePath,
+        content: content,
+      }
     });
 
-    if (!canceled && filePath) {
-      await utilsWriteFile(filePath, content);
-      MessagePlugin.success(t('pages.setting.data.success'));
-    };
+    if (writeStatus) MessagePlugin.success(t('pages.setting.data.success'));
+    else MessagePlugin.error(t('pages.setting.data.fail'));
   } catch (err: any) {
-    console.error(`[exportFileEvent][Error]:`, err);
+    console.error(`[handleExportFile] err:`, err);
     MessagePlugin.error(`${t('pages.setting.data.fail')}: ${err.message}`);
   };
 };
@@ -651,7 +905,7 @@ const handleDebug = async () => {
       MessagePlugin.warning(t('pages.lab.jsEdit.message.initNoData'));
       return;
     };
-    await sitePutJs();
+    await utilsPutSite();
     await putSiteDefault(debugId.value);
     emitter.emit('refreshFilmConfig');
     router.push({ name: 'FilmIndex' });
@@ -706,7 +960,7 @@ const handleOpFileChange = (type: string) => {
       handleImportFile();
       break;
     case 'export':
-      handleexportFile();
+      handleExportFile();
       break;
     case 'decode':
       handleDecode();
@@ -800,53 +1054,60 @@ const handleDomDebug = async (type: string, rule: string) => {
     'pdfh': fetchJsEditPdfh,
   };
 
-  const _console = log.value;
   try {
     const res = await methodMap[type]({ html: content, rule });
-    _console.warn(`${type}: ${moment().format('YYYY-MM-DD HH:mm:ss')}`);
-    console.warn(`${type}: ${moment().format('YYYY-MM-DD HH:mm:ss')}`);
+    console.warn(`${type}: ${moment().format('YYYY-MM-DD HH:mm:ss')}`, res);
+
+    _console.info(`${type}: ${moment().format('YYYY-MM-DD HH:mm:ss')} > `);
     _console.log(res);
-    console.log(res);
+    _console.log('\n');
     MessagePlugin.success(`${t('pages.setting.data.success')}`);
   } catch (err: any) {
-    _console.warn(`${type}: ${moment().format('YYYY-MM-DD HH:mm:ss')}`);
-    console.warn(`${type}: ${moment().format('YYYY-MM-DD HH:mm:ss')}`);
+    console.error(`${type}: ${moment().format('YYYY-MM-DD HH:mm:ss')}`, err);
+
+    _console.warn(`${type}: ${moment().format('YYYY-MM-DD HH:mm:ss')} > `);
     _console.error(err);
-    console.error(err);
+    _console.log('\n');
     MessagePlugin.error(`${t('pages.setting.data.fail')}: ${err.message}`);
   }
+  fitAddon.value?.fit();
 };
 
 // btn
 const handleModeToggle = async () => {
-  const status = form.value.init.mode === 't3' ? 't4' : 't3';
+  const defaultMode = ['t3js', 't3py', 't4'];
+  const activeIndex = defaultMode.indexOf(form.value.init.mode);
+  const status = activeIndex + 1 === defaultMode.length ? defaultMode[0] : defaultMode[activeIndex + 1];
   form.value.init.mode = status;
   if (status === 't4') {
     MessagePlugin.info(t('pages.lab.jsEdit.message.modeT4'));
-  };
-  await sitePutJs();
+  } else if (status === 't3py') {
+    MessagePlugin.info(t('pages.lab.jsEdit.message.modeT3py'));
+  }
+  form.value.content.js = await utilsRead();
+  await utilsPutSite();
 };
 
 const handleDataDebugLog = async () => {
-  const res = await fetchCmsRunMain({
-    func: "function main() {return getLogRecord()}",
-    arg: "",
-    sourceId: debugId.value
-  });
+  try {
+    const res = await utilsGetLog();
 
-  const _console = log.value;
+    res.forEach(([type, time, content]) => {
+      console.info(`log: ${moment(time).format('YYYY-MM-DD HH:mm:ss')}`, content);
 
-  _console.warn(`server log: ${moment().format('YYYY-MM-DD HH:mm:ss')}`);
-  res.forEach(([type, time, content]) => {
-    try {
-      content = JSON5.parse(content);
-    } catch {
+      _console.info(`log: ${moment(time).format('YYYY-MM-DD HH:mm:ss')} > `);
+      _console.log(content);
+      _console.log('\n');
+    });
+  } catch (err: any) {
+    console.warn(`log: ${moment().format('YYYY-MM-DD HH:mm:ss')}`, err);
 
-    } finally {
-      console.log(content);
-      _console[type](`server log: ${time}`, content);
-    }
-  });
+    _console.info(`log: ${moment().format('YYYY-MM-DD HH:mm:ss')} > `);
+    _console.error(err);
+    _console.log('\n');
+    MessagePlugin.error(`${t('pages.setting.data.fail')}: ${err.message}`);
+  }
+  fitAddon.value?.fit();
 };
 
 // data
@@ -863,18 +1124,19 @@ const handleDataDebugHomeVod = async () => {
 };
 
 const handleDataDebugCategory = async () => {
-  const { t: tid, f, pg: page } = form.value.category;
+  let { t: tid, f = '{}', pg } = form.value.category;
+  if (!f) f = '{}';
+  f = Function('return (' + f + ')')();
 
   if (!tid) {
     MessagePlugin.warning(t('pages.lab.jsEdit.message.listNoT'));
     return;
-  }
-
+  };
   const data = {
     tid,
-    page: page || 1,
+    page: pg || 1,
     filter: !!f,
-    extend: f ? JSON5.parse(f) : {},
+    f: JSON.stringify(f),
   };
   await handleDataDebug('category', data);
 };
@@ -1000,7 +1262,7 @@ const handleDataDebug = async (type: string, data: { [key: string]: any } = {}) 
   if (type === 'init' || (edit > init && auto)) {
     const currentTime = moment().unix();
     form.value.lastEditTime.init = currentTime;
-    await sitePutJs();
+    await utilsPutSite();
     if (type !== 'init') {
       await fetchCmsInit({ sourceId: debugId.value, debug: true });
     };
@@ -1019,87 +1281,224 @@ const handleDataDebug = async (type: string, data: { [key: string]: any } = {}) 
     'log': fetchCmsRunMain,
   };
 
-  const _console = log.value;
   try {
     const res = await methodMap[type]({ ...data, sourceId: debugId.value });
     if (type === 'proxy') form.value.proxy.upload = JSON5.stringify(res);
-    _console.warn(`${type}: ${moment().format('YYYY-MM-DD HH:mm:ss')}`);
-    console.warn(`${type}: ${moment().format('YYYY-MM-DD HH:mm:ss')}`);
+    console.info(`${type}: ${moment().format('YYYY-MM-DD HH:mm:ss')}`, res);
+
+    _console.info(`${type}: ${moment().format('YYYY-MM-DD HH:mm:ss')} > `);
     _console.log(res);
-    console.log(res);
+    _console.log('\n');
     MessagePlugin.success(`${t('pages.setting.data.success')}`);
   } catch (err: any) {
-    _console.warn(`${type}: ${moment().format('YYYY-MM-DD HH:mm:ss')}`);
-    console.warn(`${type}: ${moment().format('YYYY-MM-DD HH:mm:ss')}`);
+    console.warn(`${type}: ${moment().format('YYYY-MM-DD HH:mm:ss')}`, err);
+
+    _console.info(`${type}: ${moment().format('YYYY-MM-DD HH:mm:ss')} > `);
     _console.error(err);
-    console.error(err);
+    _console.log('\n');
     MessagePlugin.error(`${t('pages.setting.data.fail')}: ${err.message}`);
   }
+  fitAddon.value?.fit();
 };
+
+// 创建一个日志工具
+const _console = (() => {
+  // 定义日志级别和对应的ANSI颜色代码
+  const LOG_LEVELS = {
+    info: '\x1b[34m', // 蓝色
+    warn: '\x1b[33m', // 黄色
+    error: '\x1b[31m', // 红色
+    log: '\x1b[0m' // 重置颜色
+  };
+
+  const strFormat = (str: string | number | object): string => {
+    if (typeof str === 'object') {
+      return JSON.stringify(str, null, 2);
+    }
+    return String(str);
+  };
+
+  const log = (level: keyof typeof LOG_LEVELS, arg: any) => {
+    const colorCode = LOG_LEVELS[level];
+    const formattedArg = strFormat(arg);
+    const output = `${colorCode}${formattedArg}${LOG_LEVELS.log}`;
+    terminal.value?.write(output);
+  };
+
+  return {
+    log: (arg: any) => log('log', arg),
+    info: (arg: any) => log('info', arg),
+    warn: (arg: any) => log('warn', arg),
+    error: (arg: any) => log('error', arg)
+  };
+})();
 
 // console
 const setupConsole = () => {
-  if (!logRef.value) return;
-
-  const _console = new LunaConsole(logRef.value, {
-    theme: storeSetting.displayMode === 'light' ? 'light' : 'dark',
+  terminal.value = new Terminal({
+    fontSize: 14,
+    fontFamily: "JetBrainsMono",
+    theme: {
+      foreground: theme.value === 'light' ? '#000000' : '#ffffff'
+    },
+    convertEol: true, //启用时，光标将设置为下一行的开头
+    disableStdin: true, //是否应禁用输入
+    cursorBlink: true,
+    cursorStyle: 'underline',
   });
-  log.value = _console;
-  _console.log('%c console setup success, welcome use zyfun js edit series tools ', 'background: var(--td-bg-content-input-1); color: var(--td-success-color)');
+  fitAddon.value = new FitAddon();
+  terminal.value.loadAddon(fitAddon.value);
+  terminal.value.open(logRef.value!);
+  fitAddon.value.fit();
+
+  logResizeObserver.observe(logRef.value!);
 };
 
 const handleConsoleClear = () => {
   console.clear();
-
-  if (!log.value) return;
-  log.value.clear();
+  terminal.value?.clear();
 };
 
 // webview
-const handleWebviewControl = (type: string) => {
+
+// 验证 webview 是否挂掉
+const validateAndRecoverWebview = async () => {
+  if (!webviewRef.value || !controlText.value) return;
+
+  try {
+    webviewRef.value.getURL();
+  } catch {
+    console.warn('webview 失效，正在恢复...');
+    await resetWebview();
+    bindDomReady();
+    nextTick(() => {
+      handleWebviewLoad(controlText.value);
+    });
+  }
+};
+
+// 绑定 dom-ready 事件
+const bindDomReady = () => {
   if (!webviewRef.value) return;
 
-  switch (type) {
-    case 'back':
-    if (webviewRef.value.canGoBack()) webviewRef.value.goBack();
-      break;
-    case 'forward':
-    if (webviewRef.value.canGoForward()) webviewRef.value.goForward();
-      break;
-    case 'reload':
-      webviewRef.value.reload();
-      break;
-    case 'devtools':
-      webviewRef.value.openDevTools();
-      break;
-  }
-}
-
-const handleWebviewLoad = (url: string) => {
-  if (!url) return;
-
-  if (!/^(https?:\/\/)/.test(url)) {
-    url = `http://${url}`;
-    webview.value.url = url;
-  }
-  webview.value.route = url;
-
-  const webviewLoadError = (err: any) => {
-    MessagePlugin.warning(`${t('pages.lab.pluginCenter.control.loadUiEntryError')}: ${err.errorDescription}`);
-    webviewRef.value.src = 'about:blank';
+  const loadWebview = () => {
+    console.log('webview dom-ready');
+    webviewRef.value?.removeEventListener('dom-ready', loadWebview);
+    
+    // ✅ dom-ready 后直接重新加载 controlText 的内容
+    if (controlText.value) {
+      handleWebviewLoad(controlText.value);
+    }
   };
 
-  const webviewRoute = (event: any) => {
-    console.log('webviewRoute', event);
-    webview.value.url = event.url;
+  webviewRef.value.removeEventListener('dom-ready', loadWebview);
+  webviewRef.value.addEventListener('dom-ready', loadWebview);
+};
+
+// 重置 webview
+const resetWebview = async () => {
+  isWebviewVisible.value = false;
+  await nextTick();
+  isWebviewVisible.value = true;
+  await nextTick();
+};
+
+// 处理 webview 加载
+const handleWebviewLoad = (url: string) => {
+  if (!url || url === 'about:blank') return;
+
+  let parsedUrl: URL;
+  try {
+    parsedUrl = new URL(url);
+  } catch {
+    try {
+      parsedUrl = new URL(`http://${url}`);
+      url = parsedUrl.href;
+    } catch {
+      console.error('Invalid URL:', url);
+      return;
+    }
+  }
+
+  // 限制只允许 http/https 协议
+  if (!['http:', 'https:'].includes(parsedUrl.protocol)) return;
+  controlText.value = url;
+  webviewRef.value?.loadURL(url);
+
+  const setupWebviewListeners = () => {
+    const webview = webviewRef.value;
+    if (!webview) return;
+
+    const webviewRoute = (event: { url: string }) => {
+      if (controlText.value === event.url) return;
+      controlText.value = event.url;
+      console.log('webviewRoute', event.url);
+    };
+
+    // 移除之前的监听器（避免重复注册）
+    webview.removeEventListener('did-navigate-in-page', webviewRoute);
+    // webview.removeEventListener('did-navigate', webviewRoute);
+    webview.removeEventListener('did-redirect-navigation', webviewRoute);
+
+    // 添加新的监听器
+    webview.addEventListener('did-navigate-in-page', webviewRoute);
+    // webview.addEventListener('did-navigate', webviewRoute);
+    webview.addEventListener('did-redirect-navigation', webviewRoute);
+  };
+
+  const setupIpcListeners = () => {
+    // 只清除 blockUrl 监听器，防止其他 ipc 消息被误删
+    window.electron.ipcRenderer.removeAllListeners('blockUrl');
+
+    window.electron.ipcRenderer.on('blockUrl', async (_, blockedUrl: string) => {
+      handleWebviewLoad(blockedUrl);
+    });
   };
 
   nextTick(() => {
-    webviewRef.value.removeEventListener('did-fail-load', webviewLoadError);
-    webviewRef.value.addEventListener('did-fail-load', webviewLoadError);
-    webviewRef.value.addEventListener('did-navigate-in-page', webviewRoute);
-    webviewRef.value.addEventListener('did-navigate', webviewRoute);
+    setupWebviewListeners();
+    setupIpcListeners();
   });
+};
+
+// 处理 webview 控制
+const handleWebviewControl = async (action: 'back'| 'forward'| 'devtools'| 'refresh'| 'clearHistory') => {
+  const webview = webviewRef.value;
+  if (!webview) return;
+
+  // 后退
+  const backEvent = () => {
+    if (webview.canGoBack()) webview.goBack();
+  };
+
+  // 前进
+  const forwardEvent = () => {
+    if (webview.canGoForward()) webview.goForward();
+  };
+
+  // 刷新
+  const refreshEvent = () => {
+    webview.reload();
+  };
+
+  // 清除浏览器导航历史记录
+  const clearHistoryEvent = () => {
+    webview.clearHistory();
+  };
+
+  const openDevToolsEvent = () => {
+    webview.openDevTools();
+  };
+
+  const method = {
+    back: backEvent,
+    devtools: openDevToolsEvent,
+    forward: forwardEvent,
+    refresh: refreshEvent,
+    clearHistory: clearHistoryEvent,
+  };
+
+  method[action]();
 };
 </script>
 
@@ -1131,6 +1530,42 @@ const handleWebviewLoad = (url: string) => {
     }
 
     .right-operation-container {
+      display: flex;
+      align-items: center;
+      gap: var(--td-size-4);
+
+      .mode-toogle {
+        height: 36px;
+        min-width: 80px;
+        font: var(--td-font-body-medium);
+        color: var(--td-text-color-secondary);
+        --ripple-color: transparent;
+        background-color: var(--td-bg-content-input-2);
+        border-color: transparent;
+
+        &:hover {
+          color: var(--td-text-color-primary);
+        }
+
+        .status {
+          display: flex;
+          flex-direction: column;
+          font-size: 12px;
+          line-height: 16px;
+          justify-content: center;
+
+          .title {
+            font-weight: 500;
+            text-align: left;
+          }
+
+          .desc {
+            font-size: 10px;
+            text-align: left;
+          }
+        }
+      }
+
       :deep(.t-radio-group.t-size-m) {
         background-color: var(--td-bg-content-input-2);
         border-color: transparent;
@@ -1233,195 +1668,73 @@ const handleWebviewLoad = (url: string) => {
 
   .content {
     flex: 1;
-    // display: flex;
-    // flex-direction: row;
-    // justify-content: space-between;
-    // grid-gap: var(--td-comp-margin-s);
     width: 100%;
-    // height: 100%;
     height: calc(100% - 36px - var(--td-size-4));
-    // overflow: hidden;
-
     border-radius: var(--td-radius-default);
     overflow: hidden;
 
-    .left {
-      height: 100%;
-      width: calc((100% - var(--td-comp-margin-s)) / 2);
+    :deep(.splitpanes) {
+      &.default-theme {
+        .splitpanes__splitter {
+          background-color: var(--td-border-level-1-color);
 
-      .edit {
-        display: flex;
-        flex-direction: column;
-        grid-gap: var(--td-comp-margin-s);
-        height: 100%;
-
-        .code-op {
-          display: flex;
-          flex-direction: column;
-          grid-gap: var(--td-comp-margin-s);
-
-          .code-op-item {
-            display: flex;
-            grid-gap: var(--td-comp-margin-s);
+          &::before {
+            background-color: var(--td-border-level-2-color);
           }
 
-          .item {
-            display: flex;
-            grid-gap: var(--td-comp-margin-s);
-          }
-
-          .source,
-          .sniffer {
-            display: flex;
-            grid-gap: var(--td-comp-margin-s);
-            flex: 1;
+          &::after {
+            background-color: var(--td-border-level-2-color);
           }
         }
 
-        .code-box {
-          flex: 1;
-          height: 100%;
-          border-radius: var(--td-radius-default);
-          overflow: hidden;
+        &.splitpanes--horizontal>.splitpanes__splitter,
+        .splitpanes--horizontal>.splitpanes__splitter {
+          border-color: var(--td-border-level-1-color);
+        }
+
+        &.splitpanes--vertical>.splitpanes__splitter,
+        .splitpanes--vertical>.splitpanes__splitter {
+          border-color: var(--td-border-level-1-color);
         }
       }
     }
 
-    .right {
+    .editor-pane {
       height: 100%;
-      width: calc((100% - var(--td-comp-margin-s)) / 2);
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      grid-gap: var(--td-comp-margin-s);
+    }
 
-      .action {
-        width: 100%;
+    .console-pane {
+      height: 100%;
+      background-color: var(--td-bg-content-input-1);
+      // padding: var(--td-comp-paddingLR-s) var(--td-comp-paddingLR-s);
+
+      .console-root {
         display: flex;
-        flex-wrap: wrap;
-        grid-gap: var(--td-comp-margin-s);
+        justify-content: space-between;
+        padding: var(--td-comp-paddingLR-xxs) var(--td-comp-paddingLR-s);
 
-        .item {
-          display: flex;
-          flex-wrap: nowrap;
-          width: 100%;
-          overflow: hidden;
-
-          .init {
-            :deep(.t-button__text) {
-              display: flex;
-              flex-direction: row;
-              align-items: center;
-            }
-
-            .click {
-              margin-left: var(--td-comp-margin-s);
-              border: 2px solid rgba(132, 133, 141, 0.7);
-              border-radius: var(--td-radius-circle);
-              width: 24px;
-              height: 24px;
-            }
-
-            .status {
-              display: flex;
-              flex-direction: column;
-              font-size: 12px;
-              line-height: 14px;
-              align-content: flex-start;
-
-              .title {
-                font-weight: 500;
-                text-align: left;
-              }
-
-              .desc {
-                font-size: 10px;
-                text-align: left;
-              }
-            }
-          }
-
-          .input {
-            width: 100%;
-            margin-right: var(--td-comp-margin-s);
-          }
-
-          .w-btn {
-            width: 50px;
-          }
-
-          .w-100\% {
-            width: calc((100% - 50px - (var(--td-comp-margin-s))));
-          }
-
-          .w-50\% {
-            width: calc((100% - 50px - (var(--td-comp-margin-s) * 2)) / 2);
-          }
-
-          .w-50-30\% {
-            width: calc((100% - 50px - (var(--td-comp-margin-s) * 2)) / 10 * 3);
-          }
-
-          .w-50-70\% {
-            width: calc((100% - 50px - (var(--td-comp-margin-s) * 2)) / 10 * 7);
-          }
-
-          .w-33-30\% {
-            width: calc((100% - 50px - (var(--td-comp-margin-s) * 2)) / 10 * 3);
-          }
-
-          .w-33-40\% {
-            width: calc((100% - 50px - (var(--td-comp-margin-s) * 2)) / 10 * 4);
-          }
-
-          .w-33\% {
-            width: calc((100% - 50px - (var(--td-comp-margin-s) * 3)) / 3);
-          }
+        .header-clear {
+          cursor: pointer;
         }
       }
 
-      .log-container {
-        position: relative;
-        flex: 1;
-        width: 100%;
-        height: 100%;
-        margin-top: var(--td-comp-paddingTB-m);
+      .log-pane-content {
+        height: calc(100% - 26px);
         border-radius: var(--td-radius-default);
-        background-color: var(--td-bg-content-input-2);
+        overflow: hidden;
 
-        .log-nav {
-          position: absolute;
-          width: calc(100% - 30px);
-          z-index: 100;
-          top: -15px;
-          left: 15px;
-          display: flex;
-          justify-content: space-between;
-
-          :deep(.t-radio-group) {
-            box-shadow: var(--td-shadow-3);
-          }
-        }
-
-        .log-text {
+        .log-box {
           height: 100%;
-          width: 100%;
-          position: absolute;
-          top: 0;
-          bottom: 0;
-          border-radius: var(--td-radius-default);
-          padding: var(--td-comp-paddingTB-xs) 0 var(--td-comp-paddingTB-m);
 
-          .log-box {
-            position: relative;
-            width: 100% !important;
-            height: 100% !important;
-            margin-top: var(--td-comp-paddingTB-m);
-            border-radius: 0 0 var(--td-radius-default) var(--td-radius-default);
-            overflow: hidden;
-            :deep(.monaco-edito) {
-              width: 100% !important;
-              height: 100% !important;
+          :deep(.xterm) {
+            height: 100%;
+
+            .xterm-viewport {
+              background-color: var(--td-bg-content-input-1) !important;
+            }
+
+            .xterm-screen {
+              padding: 0 var(--td-comp-paddingLR-s);
             }
           }
         }
@@ -1725,59 +2038,6 @@ const handleWebviewLoad = (url: string) => {
     background-color: var(--td-bg-content-input-1);
     border-radius: var(--td-radius-default);
     overflow: hidden;
-  }
-}
-
-.split-pane {
-  height: 100%;
-  width: 100%;
-
-  .editor-pane {
-    height: 100%;
-    width: 100%;
-  }
-
-  .console-pane {
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-    width: 100%;
-
-    .console-root {
-      display: flex;
-      justify-content: space-between;
-      background-color: var(--td-bg-content-input-1);
-      padding: 0 var(--td-comp-paddingLR-xs);
-
-      .header-name {
-        color: var(--td-text-color-secondary);
-        font-size: var(--td-font-size-link-small);
-      }
-
-      .header-clear {
-        color: var(--td-text-color-secondary);
-        cursor: pointer;
-
-        &:hover {
-          color: var(--td-text-color-primary);
-        }
-      }
-    }
-
-    .log-pane-content {
-      display: flex;
-      flex: 1 1 auto;
-      flex-direction: column;
-      min-height: 0;
-
-      .log-box {
-        width: 100%;
-        height: 100%;
-        overflow-y: auto;
-        background-color: var(--td-bg-content-input-2);
-        color: var(--td-text-color-primary);
-      }
-    }
   }
 }
 </style>

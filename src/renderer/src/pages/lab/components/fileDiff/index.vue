@@ -24,26 +24,26 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { MessagePlugin } from 'tdesign-vue-next';
+
 import { t } from '@/locales';
 import { useSettingStore } from '@/store';
 import { CodeEditor } from '@/components/code-editor';
 
-const remote = window.require('@electron/remote');
 const storeSetting = useSettingStore();
 
+const theme = computed(() => storeSetting.displayTheme);
 const form = ref({
   target: '',
   origin: '',
 });
 const active = ref({
   nav: '',
+  clickType: '',
 });
-
-
 const diffEditConf = ref({
-  theme: storeSetting.displayMode === 'light' ? 'vs' : 'vs-dark',
+  theme: theme.value === 'light' ? 'vs' : 'vs-dark',
   enableSplitViewResizing: true, // 是否允许拖动分割线
   originalEditable: true, // 是否允许编辑原始文本
   renderSideBySide: true, // 是否渲染为并排模式(不生效)
@@ -57,31 +57,39 @@ const diffEditConf = ref({
   fixedOverflowWidgets: true
 });
 
+watch(
+  () => theme.value,
+  (val) => {
+    diffEditConf.value.theme = val === 'light' ? 'vs' : 'vs-dark';
+  }
+);
+
 const importFileEvent = async (type: string) => {
   try {
-    const readFile = async(filePath: string) =>{
-      const fs = remote.require('fs').promises;
-      return await fs.readFile(filePath, 'utf-8');
-    }
+    const res = await window.electron.ipcRenderer.invoke('manage-dialog', {
+      action: 'showOpenDialog',
+      config: {
+        properties: ['openFile', 'showHiddenFiles'],
+        filters: [
+          { name: 'Text Files', extensions: ['txt'] },
+          { name: 'Json Files', extensions: ['json'] },
+          { name: 'All Files', extensions: ['*'] }
+        ],
+      }
+    });
+    if (!res || res.canceled || !res.filePaths.length) return;
 
-    const { canceled, filePaths } = await remote.dialog.showOpenDialog(remote.getCurrentWindow(), {
-      title: 'Select a file to read',
-      filters: [
-        { name: 'JavaScript Files', extensions: ['js'] },
-        { name: 'Text Files', extensions: ['txt'] },
-        { name: 'All Files', extensions: ['*'] },
-      ],
-      properties: ['openFile'],
+    const fileContent = await window.electron.ipcRenderer.invoke('manage-file', {
+      action: 'read',
+      config: {
+        path: res.filePaths[0],
+      }
     });
 
-    if (!canceled && filePaths) {
-      const filePath = filePaths[0];
-      const content = await readFile(filePath);
-      form.value[type] = content;
-      MessagePlugin.success(t('pages.setting.data.success'));
-    };
+    form.value[type] = fileContent || '';
+    MessagePlugin.success(t('pages.setting.data.success'));
   } catch (err: any) {
-    console.error(`[exportFileEvent][Error]:`, err);
+    console.error(`[importFileEvent] err:`, err);
     MessagePlugin.error(`${t('pages.setting.data.fail')}: ${err.message}`);
   }
 };
@@ -98,7 +106,6 @@ const handleOpChange = (type: string) => {
       break;
   };
 };
-
 </script>
 
 <style lang="less" scoped>

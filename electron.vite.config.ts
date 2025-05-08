@@ -36,13 +36,13 @@ export default defineConfig(({ mode }: ConfigEnv) => {
           },
           input: {
             index: resolve(__dirname, 'src/main/index.ts'),
-            worker: resolve(__dirname, 'src/main/core/server/routes/v1/site/cms/adapter/drpy/worker.ts'),
+            site_drpy_worker: resolve(__dirname, 'src/main/core/server/routes/v1/site/cms/adapter/drpy/worker.ts'),
           },
           output: {
             manualChunks: {
-              fastify: ['fastify', 'fastify-logger', 'fastify-plugin', '@fastify/cors', '@fastify/multipart'],
+              fastify: ['fastify', 'fastify-plugin', '@fastify/cors', '@fastify/multipart'],
               db: ['drizzle-kit', 'drizzle-orm'],
-              crypto: ['crypto-js', 'he', 'pako', 'wxmp-rsa'],
+              crypto: ['crypto-js', 'he', 'pako', 'wxmp-rsa', 'node-rsa'],
             },
           },
           external: [],
@@ -73,21 +73,12 @@ export default defineConfig(({ mode }: ConfigEnv) => {
             assetFileNames: `assets/static/[ext]/[name]_[hash].[ext]`, // 资源文件像 字体，图片等
             manualChunks: {
               'monaco-editor': ['monaco-editor'],
-              lodash: ['lodash'],
-              xgplayer: [
-                'xgplayer',
-                'xgplayer-dash',
-                'xgplayer-flv',
-                'xgplayer-flv.js',
-                'xgplayer-hls',
-                'xgplayer-hls.js',
-                'xgplayer-mp4',
-                'xgplayer-shaka',
-              ],
+              xgplayer: ['xgplayer', 'xgplayer-flv', 'xgplayer-hls', 'xgplayer-mp4', 'xgplayer-shaka'],
               artplayer: ['artplayer', 'artplayer-plugin-danmuku'],
               dplayer: ['dplayer'],
               nplayer: ['nplayer', '@nplayer/danmaku'],
-              'video-decoder': ['flv.js', 'hls.js', 'shaka-player', 'mpegts.js'],
+              oplayer: ['@oplayer/core', '@oplayer/plugins', '@oplayer/danmaku', '@oplayer/hls', '@oplayer/ui', '@oplayer/dash', '@oplayer/mpegts'],
+              'video-decoder': ['dashjs', 'flv.js', 'hls.js', 'mpegts.js','shaka-player'],
               tdesign: ['tdesign-vue-next', 'tdesign-icons-vue-next', '@tdesign-vue-next/chat'],
               md: ['markdown-it', 'highlight.js', 'markdown-it-mathjax3'],
               crypto: ['crypto-js', 'he', 'pako', 'wxmp-rsa'],

@@ -1,13 +1,10 @@
 import { compare } from 'compare-versions';
 import { eq } from 'drizzle-orm';
 import { app } from 'electron';
-import { join } from 'path';
 import { db, schema, server, webdev } from './common';
 import migration from './migration';
 import * as service from './service';
 import logger from '@main/core/logger';
-
-const DB_PATH = join(app.getPath('userData'), 'database');
 
 const updates = [
   { version: '3.3.2', update: migration.update3_3_1to3_3_2 },
@@ -17,6 +14,7 @@ const updates = [
   { version: '3.3.8', update: migration.update3_3_7to3_3_8 },
   { version: '3.3.9', update: migration.update3_3_8to3_3_9 },
   { version: '3.3.10', update: migration.update3_3_9to3_3_10 },
+  { version: '3.4.0', update: migration.update3_3_10to3_4_0 },
 ];
 
 const magrite = async () => {
@@ -53,7 +51,6 @@ const magrite = async () => {
 
 const setup = async () => {
   await magrite();
-  logger.info(`[db][init] path:${DB_PATH}`);
 };
 
 export { db, schema, setup, magrite, server, service, webdev };

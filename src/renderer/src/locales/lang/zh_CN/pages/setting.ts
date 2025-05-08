@@ -3,6 +3,7 @@ export default {
   loading: '加载中...',
   upload: '上传',
   random: '随机',
+  more: '更多',
   placeholder: {
     general: '请输入内容',
     startPage: '请输入起始页路径, 例如/home/',
@@ -13,14 +14,16 @@ export default {
       'M3u格式示例:\n#EXTM3U\n#EXTINF:-1,Channel\nhttps://channel-url\n\ngenre格式示例\nChannel,https://channel-url',
     groupTip: '请选择分组',
     categoryTip: '请输入屏蔽主分类内容, 分类逗号分隔',
-    shortcutKeyTip: '点击设置快捷键',
-    shortcutKeyEnterTip: '请按键盘快捷键',
-    shortcutKeyNonCompliance: '当前快捷键不合规',
+    shortcutInput: '点击设置快捷键',
+    shortcutPress: '请按键盘快捷键',
+    shortcutErrCompliance: '快捷键不合规',
+    shortcutErrRegistered: '快捷键冲突',
     epgTip: '仅支持dipy',
     logoTip: '源台标失效',
     pdfaTip: '列表规则(如 body&&li)',
     pdfhTip: '节点规则(如 body&&a,0&&href)',
     splitForVerticalLine: '按｜分隔',
+    enterConfirm: '输入并回车确认',
   },
   form: {
     success: '成功',
@@ -31,11 +34,12 @@ export default {
   dialog: {
     cancel: '取消',
     confirm: '确定',
+    install: '安装',
+    save: '保存',
     reset: '重置',
     add: '添加',
     edit: '编辑',
     flag: '标识',
-    splitTip: '分隔符请使用半角状态","',
     restoreFactoryHeader: '恢复出厂',
     restoreFactoryBody: '你确定要恢复出厂吗? 确认后恢复到初始状态。',
     rule: {
@@ -157,6 +161,7 @@ export default {
     tcplayer: '腾讯播放器',
     aliplayer: '阿里播放器',
     artplayer: '艺术播放器',
+    oplayer: '欧耶播放器',
     dplayer: '呆呆播放器',
     nplayer: '玩家播放器',
     ckplayer: '超酷播放器',
@@ -181,7 +186,7 @@ export default {
     license: '开源软件声明',
   },
   message: {
-    reboot: '重置成功，应用程序将重新启动',
+    reboot: '应用程序将重新启动',
     hardwareAccelerationOn: '硬件加速打开，重新启动应用程序生效',
     hardwareAccelerationOff: '硬件加速关闭，重新启动应用程序生效',
     windowPositionOn: '打开窗口位置',
@@ -211,9 +216,9 @@ export default {
   barrage: {
     title: '弹幕',
     header: '启用该参数需预处理数据, 将增加起播时间',
-    id: '返回标识',
-    key: '返回字段',
-    api: '接口',
+    id: '标识',
+    key: '字段',
+    url: '接口',
     support: '线路',
     start: '时间',
     color: '颜色',
@@ -226,7 +231,7 @@ export default {
   data: {
     title: '数据管理',
     config: '配置',
-    configTip: '数据保存在数据库中, 为方便迁移可导出为json文件, 导入将覆盖原数据',
+    configTip: '数据保存在数据库中, 为方便迁移可导出为json文件',
     success: '成功',
     fail: '失败',
     noSelectData: '未选择数据',
@@ -235,6 +240,7 @@ export default {
     additionalTip: '原有数据上追加，确认配置吗',
     override: '覆盖',
     additional: '追加',
+    history: '历史',
     easyConfig: {
       title: '快捷配置',
       app: '此软件',
@@ -303,6 +309,8 @@ export default {
   },
   sniffer: {
     title: '嗅探方案',
+    type: '模式',
+    url: '接口',
     pie: {
       sign: 'Puppeteer',
       name: '拦截和修改请求',

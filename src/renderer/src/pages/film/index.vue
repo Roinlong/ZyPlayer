@@ -95,7 +95,7 @@
 import 'v3-infinite-loading/lib/style.css';
 import lazyImg from '@/assets/lazy.png';
 
-import differenceBy from 'lodash/differenceBy';
+import { differenceBy } from 'lodash-es';
 import { MessagePlugin } from 'tdesign-vue-next';
 import { RootListIcon } from 'tdesign-icons-vue-next';
 import InfiniteLoading from 'v3-infinite-loading';
@@ -164,7 +164,6 @@ const siteConfig = ref({
   filterOnlySearchData: [],
   searchGroup: []
 }) as any;
-
 const active = ref({
   nav: null,
   class: 'homeVod',
@@ -298,6 +297,7 @@ const changeClassEvent = (key: string) => {
 const getFilmList = async (source) => {
   const pg = pagination.value.pageIndex;
   const t = active.value.tmpClass || active.value.class;
+  const f = active.value.filter || {};
 
   let length = 0;
   try {
@@ -307,9 +307,10 @@ const getFilmList = async (source) => {
     } else {
       res = await fetchCmsCategory({
         sourceId: source.id,
-        page: pg,
+        page: pg || 1,
         tid: t,
-        f: JSON.stringify(active.value.filter)
+        filter: !!f,
+        f: JSON.stringify(f)
       });
     };
     if (Array.isArray(res?.list) && res?.list.length > 0) {
@@ -502,8 +503,7 @@ const playEvent = async (item) => {
         status: true,
         data: doc,
       });
-
-      window.electron.ipcRenderer.send('open-play-win', item.vod_name);
+      window.electron.ipcRenderer.send('open-win', { action: 'play' });
     }
   } catch (err) {
     console.error(`[film][playEvent][error]`, err);
@@ -554,11 +554,11 @@ const refreshConf = async () => {
   await getSetting();
 };
 
-const changeConf = async (key: string) => {
+const changeConf = async (id: string) => {
   try {
     defaultConf();
-    active.value.nav = key;
-    siteConfig.value.default = siteConfig.value.data.find(item => item.id === key);
+    active.value.nav = id;
+    siteConfig.value.default = siteConfig.value.data.find(item => item.id === id);
     active.value.infiniteType = 'noMore';
   } catch (err) {
     active.value.infiniteType = 'noData';

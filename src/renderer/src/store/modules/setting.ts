@@ -28,9 +28,12 @@ export const useSettingStore = defineStore('setting', {
       }
       return state.mode as ModeType;
     },
+    displayTheme: (state): ModeType => {
+      return state.theme as ModeType;
+    },
   },
   actions: {
-    async changeMode(mode: ModeType | 'auto') {
+    changeMode(mode: ModeType | 'auto') {
       let theme = mode;
 
       if (mode === 'auto') {
@@ -38,7 +41,7 @@ export const useSettingStore = defineStore('setting', {
       }
       const isDarkMode = theme === 'dark';
 
-      document.documentElement.setAttribute('theme-mode', isDarkMode ? 'dark' : '');
+      document.documentElement.setAttribute('theme-mode', isDarkMode ? 'dark' : 'light');
     },
     getMediaColor() {
       const media = window.matchMedia('(prefers-color-scheme:dark)');
@@ -55,6 +58,7 @@ export const useSettingStore = defineStore('setting', {
         }
         if (key === 'mode') {
           this.changeMode(payload[key]);
+          this.theme = payload[key] === 'auto' ? this.getMediaColor() : payload[key];
         }
       }
     },

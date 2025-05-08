@@ -52,7 +52,7 @@
               class="infinite-loading-container"
             />
             <div v-else class="infinite-loading-container" style="min-height: 1px; text-align: center; margin-bottom: 2em;">
-              {{ $t(`pages.iptv.infiniteLoading.${active.infiniteType}`) }}
+              {{ $t(`pages.drive.infiniteLoading.${active.infiniteType}`) }}
             </div>
           </div>
         </div>
@@ -74,6 +74,7 @@
 <script setup lang="tsx">
 import 'v3-infinite-loading/lib/style.css';
 
+import moment from 'moment';
 import { FolderIcon, LoadingIcon } from 'tdesign-icons-vue-next';
 import { MessagePlugin } from 'tdesign-vue-next';
 import { onActivated, onMounted, reactive, ref } from 'vue';
@@ -82,8 +83,10 @@ import InfiniteLoading from 'v3-infinite-loading';
 import { prefix } from '@/config/global';
 import { t } from '@/locales';
 import { usePlayStore } from '@/store';
+import { base64 } from '@/utils/crypto';
 
 import { fetchDriveActive, putAlistInit, fetchAlistDir, fetchAlistFile } from '@/api/drive';
+import { fetchHistoryData, putHistoryData } from '@/utils/common/chase';
 import emitter from '@/utils/emitter';
 
 import CommonNav from '@/components/common-nav/index.vue';
@@ -266,33 +269,52 @@ const playEvent = async (item) => {
   isVisible.loading = true;
 
   try {
-    const { id } = driveConfig.value.default;
-    const res = await fetchAlistFile({ path: item.path, sourceId: id });
-    const tid = item.path;
-    const index = tid.indexOf('/', 1);
-    const path = tid.substring(index);
-
+    const site: any = driveConfig.value.default;
+    const res = await fetchAlistFile({ path: item.path, sourceId: site.id });
     const playerMode = storePlayer.getSetting.playerMode;
-    const shareUrl = `${driveConfig.value.default.server}/d/${path}${res.sign ? `?sign=${res.sign}` : ''}`
     if (playerMode.type === 'custom') {
-      window.electron.ipcRenderer.send('call-player', playerMode.external, shareUrl);
+      window.electron.ipcRenderer.invoke('call-player', { path: playerMode.external, url: res.url });
+
+      // 记录播放记录
+      const historyRes = await fetchHistoryData(site.key, base64.encode(item.path), ['drive']);
+      const doc = {
+        date: moment().unix(),
+        type: 'drive',
+        relateId: site.key,
+        siteSource: breadcrumb.value?.at(-1)?.path,
+        playEnd: false,
+        videoId: base64.encode(item.path),
+        videoImage: item.thumb,
+        videoName: res.name,
+        videoIndex: `${res.name}$${res.url}`,
+        watchTime: 0,
+        duration: 0,
+        skipTimeInStart: 0,
+        skipTimeInEnd: 0,
+      };
+
+      if (historyRes.code === 0 && historyRes.status) {
+        putHistoryData('put', doc, historyRes.data.id);
+      } else {
+        putHistoryData('add', doc, null);
+      }
     } else {
       storePlayer.updateConfig({
         type: 'drive',
         status: true,
         data: {
           info: {
+            id: base64.encode(item.path),
             name: res.name,
             url: res.url,
-            vod_pic: res.thumb
+            thumb: item.thumb,
+            remark: res.remark,
+            path: breadcrumb.value?.at(-1)?.path,
           },
-          ext: {
-            files: driveContent.value,
-            site: driveConfig.value.default
-          }
+          ext: { files: driveContent.value, site: driveConfig.value.default }
         },
       });
-      window.electron.ipcRenderer.send('open-play-win', res.name);
+      window.electron.ipcRenderer.send('open-win', { action: 'play' });
     }
   } catch (err) {
     console.error(`[film][playEvent][error]`, err);

@@ -1,4 +1,3 @@
-import find from 'lodash/find';
 import JSON5 from 'json5';
 import { v4 as uuidv4, validate as uuidValidate, version as uuidVersion } from 'uuid';
 import { resolve } from 'url';
@@ -29,27 +28,33 @@ const easy2tvbox = async (config, url, type) => {
   let content = config;
 
   const formatType = (selectType: string, soureceType: number, api: string) => {
-    // 0cms[xml] 1cms[json] 2drpy[js0] 6hipy[t4] 3app[v3] 4app[v3]
+    // 优先处理 selectType
+    if (selectType === 'drpy') return 2;
 
-    if (selectType === 'drpy') {
-      return 2; // drpy
-    } else {
-      if (api === 'csp_XBPQ')
-        return 9; // xbpq
-      else if (api === 'csp_XYQ')
-        return 10; // xyq
-      else if (api === 'csp_AppYsV2') return 11; // appysv2
-      switch (soureceType) {
-        case 0:
-          return 0; // t0[xml]
-        case 1:
-          return 1; // t1[json]
-        case 3:
-          return 7; // t3[drpy]
-        case 4:
-          return 6; // t4[hipy]
-      }
+    // 特殊 API 映射
+    const apiMap: Record<string, number> = {
+      'csp_XBPQ': 9,
+      'csp_XYQ': 10,
+      'csp_AppYsV2': 11,
+    };
+
+    if (api in apiMap) return apiMap[api];
+
+    // 处理 soureceType 分支
+    switch (soureceType) {
+      case 0:
+        return 0; // cms[xml]
+      case 1:
+        return 1; // cms[json]
+      case 3:
+        if (api?.includes('.js')) return 7;  // drpy[js]
+        if (api?.includes('.py')) return 12; // drpy[py]
+        break;
+      case 4:
+        return 6; // hipy[t4]
     }
+
+    return -1; // 默认未匹配
   };
 
   const formatGroup = (type: string) => {
@@ -88,7 +93,8 @@ const easy2tvbox = async (config, url, type) => {
           [0, 1, 4].includes(item.type) ||
           (item.type === 3 && item.api === 'csp_XBPQ') ||
           (item.type === 3 && item.api === 'csp_XYQ') ||
-          (item.type === 3 && item.api.includes('drpy')),
+          (item.type === 3 && item.api.includes('.js')) ||
+          (item.type === 3 && item.api.includes('.py'))
       )
       .map((item) => ({
         id: item?.id || uuidv4(),
@@ -108,7 +114,7 @@ const easy2tvbox = async (config, url, type) => {
       }));
   }
   if (content.hasOwnProperty('lives')) {
-    let oldLives = find(content.lives, { group: 'redirect' });
+    let oldLives = content.lives.find((item) => item.group === 'redirect' );
     if (oldLives && !Array.isArray(oldLives)) {
       oldLives = [oldLives];
     }
@@ -129,6 +135,7 @@ const easy2tvbox = async (config, url, type) => {
 
           iptv.push({
             id: channel?.id || uuidv4(),
+            key: channel?.key || uuidv4(),
             name: channel.name,
             type: 'remote',
             url: url,
@@ -142,6 +149,7 @@ const easy2tvbox = async (config, url, type) => {
       iptv = content.lives.map((live) => {
         return {
           id: live?.id || uuidv4(),
+          key: live?.key || uuidv4(),
           name: live.name,
           type: 'remote',
           url: formatUrl(live.url, url),
@@ -158,6 +166,7 @@ const easy2tvbox = async (config, url, type) => {
       .filter((item) => item?.type !== 2 && item?.url)
       .map((item) => ({
         id: item?.id || uuidv4(),
+        key: item?.key || uuidv4(),
         name: item.name,
         url: item.url,
         type: item?.type ? item.type : 0,
@@ -170,6 +179,7 @@ const easy2tvbox = async (config, url, type) => {
       .filter((item) => item.type === 'alist' || !item.type)
       .map((item) => ({
         id: item?.id || uuidv4(),
+        key: item?.key || uuidv4(),
         name: item.name,
         server: item.server,
         showAll: item.showAll || false,
@@ -275,11 +285,13 @@ const commonDelImportData = (data) => {
           .map((item) => {
             return {
               id: item?.id || uuidv4(),
+              key: item?.key || item?.id || uuidv4(),
               name: item.name,
               type: item?.type || 'remote',
               url: item.url,
               epg: item?.epg || '',
               logo: item?.logo || '',
+              headers: item.headers || '',
               isActive: true,
             };
           });
@@ -302,13 +314,14 @@ const commonDelImportData = (data) => {
           .map((item) => {
             return {
               id: item?.id || uuidv4(),
+              key: item?.key || item?.id || uuidv4(),
               name: item?.name || '',
               server: item?.server || '',
               showAll: item.showAll || false,
               startPage: item?.startPage || '',
               search: !!item.search,
-              headers: item.headers || null,
-              params: item.params || null,
+              headers: item.headers || '',
+              params: item.params || '',
               isActive: true,
             };
           });
@@ -319,9 +332,11 @@ const commonDelImportData = (data) => {
           .map((item) => {
             return {
               id: item?.id || uuidv4(),
+              key: item?.key || item?.id || uuidv4(),
               name: item?.name || '',
               url: item?.url || '',
               type: item?.type ? item.type : 0,
+              headers: item.headers || '',
               isActive: true,
             };
           });
@@ -353,6 +368,7 @@ const commonDelImportData = (data) => {
           .map((item) => {
             return {
               id: item?.id || uuidv4(),
+              type: item?.type || 'film',
               relateId: item.relateId,
               videoId: item.videoId,
               videoImage: item?.videoImage || '',
@@ -408,7 +424,7 @@ const readData = async (path: string) => {
 
 const importData = async (importType: string, remoteType: string, path: string) => {
   let content: any = await readData(path);
-  if (importType === 'easy') {
+  if (importType === 'easyConfig') {
     if (remoteType === 'catvod') content = await easy2catvod(content, path);
     else content = easy2tvbox(content, path, remoteType);
   }

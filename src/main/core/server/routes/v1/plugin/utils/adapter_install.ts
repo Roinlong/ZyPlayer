@@ -3,6 +3,7 @@ import { dirname, join, resolve } from 'path';
 import workerpool from 'workerpool';
 import { JsonDB, Config } from 'node-json-db';
 import { pathToFileURL, fileURLToPath } from 'url';
+import os from 'os';
 import logger from '@main/core/logger';
 import {
   deleteFile,
@@ -18,12 +19,38 @@ import {
 import { AdapterHandlerOptions, AdapterInfo } from './types';
 
 const runModule = async (entryBasePath: string, modulePath: string, method: 'stop' | 'start') => {
+  globalThis.logRecord = [];
+  ['log', 'warn', 'error'].forEach((level) => {
+    const original = console[level];
+    console[level] = (...args: any[]) => {
+      const timeStamp = new Date().getTime();
+      globalThis.logRecord.push([level, timeStamp, ...args]);
+      original.call(console, timeStamp, ...args);
+    };
+  });
+
   try {
     process.chdir(entryBasePath);
 
     const entry = await import(modulePath);
     if (entry?.method) await entry[method]();
     return { code: 0, msg: 'ok', data: null };
+  } catch (err: any) {
+    throw err;
+  }
+};
+
+const runLog = async (method: 'getLog' | 'clearLog') => {
+  try {
+    if (method === 'getLog') {
+      const res = { code: 0, msg: 'ok', data: globalThis.logRecord };
+      globalThis.logRecord = [];
+      return res;
+    }
+    if (method === 'clearLog') {
+      globalThis.logRecord = [];
+      return { code: 0, msg: 'ok', data: globalThis.logRecord };
+    }
   } catch (err: any) {
     throw err;
   }
@@ -87,6 +114,18 @@ class AdapterHandler {
       logger.error(`[plugin][readJsonFile][error] ${err.message}`);
       throw new Error(`Failed to read JSON file: ${filePath}`);
     }
+  }
+
+  async readLog(plugin: string) {
+    let pool = this.syncModules.get(`${plugin}`);
+    const res = await pool.exec(runLog, ['getLog']);
+    return res.data;
+  }
+
+  async clearLog(plugin: string) {
+    let pool = this.syncModules.get(`${plugin}`);
+    const res = await pool.exec(runLog, ['clearLog']);
+    return res.data;
   }
 
   async fetchList(plugins: any[] = [], all: boolean = false) {
@@ -179,6 +218,8 @@ class AdapterHandler {
         } else if (info?.type === 'system') {
           info.main = info?.main ? pathToFileURL(resolve(pluginBasePath, info.main)).toString() : '';
         }
+        // 2.3 base
+        info.base = pathToFileURL(resolve(pluginBasePath)).toString() || '';
 
         // 2.停止插件
         const index = await this.db.getIndex(`${this.dbTable}`, info.name, 'name');
@@ -189,7 +230,12 @@ class AdapterHandler {
         if (await fileExist(pluginPkgLockPath)) await deleteFile(pluginPkgLockPath);
 
         // 4.安装插件
-        const execRes = await this.execCommand('install', { prefix: pluginBasePath }, []);
+        const execRes = await this.execCommand('install', {
+            prefix: pluginBasePath,
+            registry: this.registry,
+            save: true,
+          }, []
+        );
         if (execRes.code === -1) continue;
 
         // 5.插件参数
@@ -202,6 +248,7 @@ class AdapterHandler {
           description: info?.description || '',
           readme: info?.readme || '',
           main: info?.main || '',
+          base: info?.base || '',
           version: info?.version || '0.0.0',
           logo: info?.logo || '',
           status: info?.status || 'STOPED',
@@ -334,7 +381,7 @@ class AdapterHandler {
           try {
             let pool = this.syncModules.get(`${pluginInfo.name}`);
             if (!pool) {
-              pool = workerpool.pool({ workerType: 'process' });
+              pool = workerpool.pool({ workerType: 'process', maxWorkers: os.cpus().length - 1 });
               this.syncModules.set(`${pluginInfo.name}`, pool);
             }
 
@@ -422,42 +469,56 @@ class AdapterHandler {
 
   /**
    * 执行包管理器命令
+   * https://juejin.cn/post/6929317820362653703
    * @memberof AdapterHandler
    */
   private async execCommand(
     cmd: string,
-    options: { [key: string]: string },
-    modules: string[] = [],
-  ): Promise<{ code: number; msg: string; data: any[] }> {
-    return new Promise(async (resolve: any, reject: any) => {
-      const config: { [key: string]: any } = {
-        save: true,
-        registry: this.registry,
-      };
+    options: { [key: string]: any } = {},
+    args: string[] = []
+  ): Promise<{ code: number; msg: string; data: any }> {
+    // 定义日志监听器
+    const logListener = (message: any) => {
+      logger.info(`[plugin][execCommand][log] ${message}`);
+    };
 
-      npm.load(config, (loadErr: any) => {
-        npm.config.prefix = options?.prefix || this.baseDir; // 重要, 刷新项目工作路径
-        logger.info(`[plugin][execCommand][env][prefix] ${npm.config.prefix}`);
+    try {
+      // 注册日志监听器
+      npm.on('log', logListener);
 
-        if (loadErr) {
-          logger.error(`[plugin][execCommand][load][error] ${loadErr.message}`);
-          reject({ code: -1, msg: loadErr.message, data: null });
-        }
+      // 检查命令是否存在
+      if (!npm.commands[cmd]) {
+        logger.error(`[plugin][execCommand][error] unsupported npm command: ${cmd}`);
+        return { code: -1, msg: `unsupported npm ${cmd}`, data: null };
+      }
 
-        npm.commands[cmd](modules, function (cmdErr: any, data: any[]) {
-          if (cmdErr) {
-            logger.error(`[plugin][execCommand][${cmd}][error] ${cmdErr.message}`);
-            reject({ code: -1, msg: cmdErr.message, data: null });
+      // 加载 npm 配置
+      await npm.load();
+
+      // 设置命令参数
+      if (options.prefix) npm.localPrefix = options.prefix;
+      if (options.registry) npm.config.set('registry', options.registry);
+      if (options.save) npm.config.set('save', options.save);
+
+      // 执行 npm 命令
+      return new Promise<{ code: number; msg: string; data: any }>((resolve, reject) => {
+        npm.commands[cmd](args, (err: any) => {
+          if (err) {
+            logger.error(`[plugin][execCommand][error] npm ${cmd} error: ${err.message}`);
+            reject({ code: -1, msg: err.message, data: null });
+          } else {
+            logger.info(`[plugin][execCommand][success] npm ${cmd} success`);
+            resolve({ code: 0, msg: 'ok', data: null });
           }
-          logger.info(`[plugin][execCommand][data]`, data);
-          resolve({ code: 0, msg: 'ok', data });
-        });
-
-        npm.on('log', (message) => {
-          logger.info(`[plugin][execCommand][log] ${message}`);
         });
       });
-    });
+    } catch (err: any) {
+      logger.error(`[plugin][execCommand][error] ${err.message}`);
+      return { code: -1, msg: err.message, data: null };
+    } finally {
+      // 移除日志监听器
+      npm.off('log', logListener);
+    }
   }
 }
 

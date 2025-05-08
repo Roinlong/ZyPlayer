@@ -1,5 +1,13 @@
 <template>
-  <t-dialog v-model:visible="formVisible" :header="$t('pages.setting.data.title')" placement="center" :footer="false">
+  <t-dialog
+    v-model:visible="formVisible"
+    :header="$t('pages.setting.data.title')"
+    attach="#main-component"
+    placement="center"
+    width="50%"
+    destroy-on-close
+    :footer="false"
+  >
     <template #body>
       <div class="data-dialog-container dialog-container-padding">
         <div class="data-item top">
@@ -20,39 +28,65 @@
                   class="input-item" :placeholder="$t('pages.setting.placeholder.general')"></t-input>
                 <div class="button-group-item">
                   <t-popconfirm :content="$t('pages.setting.data.additionalTip')" placement="bottom"
-                    @confirm="importData('easy', 'additional')">
+                    @confirm="importData('easyConfig', 'additional')">
                     <t-button block variant="outline">{{ $t('pages.setting.data.additional') }}</t-button>
                   </t-popconfirm>
                   <t-popconfirm :content="$t('pages.setting.data.overrideTip')" placement="bottom"
-                    @confirm="importData('easy', 'override')">
+                    @confirm="importData('easyConfig', 'override')">
                     <t-button block>{{ $t('pages.setting.data.override') }}</t-button>
                   </t-popconfirm>
+                  <t-dropdown>
+                    <t-button block variant="text">{{ $t('pages.setting.data.history') }}</t-button>
+                    <t-dropdown-menu>
+                      <t-dropdown-item
+                        v-for="item in historyList.easyConfig"
+                        :key="item.id"
+                        :value="item.id"
+                        @click="handleHistoryFill('easyConfig', item.id)"
+                      >
+                        <t-popup :content="item.videoId">{{ item.videoName }}</t-popup>
+                      </t-dropdown-item>
+                    </t-dropdown-menu>
+                  </t-dropdown>
                 </div>
               </t-collapse-panel>
               <t-collapse-panel value="remoteImport" :header="$t('pages.setting.data.configImport.title')">
-                <t-radio-group v-model="formData.importData.type" class="input-item">
+                <t-radio-group v-model="formData.completeConfig.type" class="input-item">
                   <t-radio value="remote">{{ $t('pages.setting.data.configImport.remote') }}</t-radio>
                   <t-radio value="local">{{ $t('pages.setting.data.configImport.local') }}</t-radio>
                 </t-radio-group>
                 <p class="tip">{{ $t('pages.setting.data.configImport.tip') }}</p>
                 <div class="input-group-item">
                   <t-input :label="$t('pages.setting.data.configImport.address')"
-                    v-model="formData.importData.url"
+                    v-model="formData.completeConfig.url"
                     :placeholder="$t('pages.setting.placeholder.general')"
                   />
-                  <t-button v-if="formData.importData.type === 'local'" class="upload-item" theme="default" @click="uploadFileEvent">
+                  <t-button v-if="formData.completeConfig.type === 'local'" class="upload-item" theme="default" @click="uploadFileEvent">
                     {{ $t('pages.setting.upload') }}
                   </t-button>
                 </div>
                 <div class="button-group-item">
                   <t-popconfirm :content="$t('pages.setting.data.additionalTip')" placement="bottom"
-                    @confirm="importData('complete', 'additional')">
+                    @confirm="importData('completeConfig', 'additional')">
                     <t-button block variant="outline">{{ $t('pages.setting.data.additional') }}</t-button>
                   </t-popconfirm>
                   <t-popconfirm :content="$t('pages.setting.data.overrideTip')" placement="bottom"
-                      @confirm="importData('complete', 'override')">
-                      <t-button block>{{ $t('pages.setting.data.override') }}</t-button>
-                    </t-popconfirm>
+                      @confirm="importData('completeConfig', 'override')">
+                    <t-button block>{{ $t('pages.setting.data.override') }}</t-button>
+                  </t-popconfirm>
+                  <t-dropdown>
+                    <t-button block variant="text">{{ $t('pages.setting.data.history') }}</t-button>
+                    <t-dropdown-menu>
+                      <t-dropdown-item
+                        v-for="item in historyList.completeConfig"
+                        :key="item.id"
+                        :value="item.id"
+                        @click="handleHistoryFill('completeConfig', item.id)"
+                      >
+                        <t-popup :content="item.videoId">{{ item.videoName }}</t-popup>
+                      </t-dropdown-item>
+                    </t-dropdown-menu>
+                  </t-dropdown>
                 </div>
               </t-collapse-panel>
               <t-collapse-panel value="exportData" :header="$t('pages.setting.data.configExport.title')">
@@ -160,29 +194,31 @@
 <script setup lang="ts">
 import { MessagePlugin } from 'tdesign-vue-next';
 import { ref, watch, reactive } from 'vue';
+import moment from 'moment';
+import { cloneDeep } from 'lodash-es';
+
 import { t } from '@/locales';
 import { clearDb, exportDb, webdevLocal2Remote, webdevRemote2Local, initDb } from '@/api/setting';
+import { fetchHistoryPage, delHistory, addHistory } from '@/api/history';
 import emitter from '@/utils/emitter';
 
-const remote = window.require('@electron/remote');
-const win = remote.getCurrentWindow();
+defineOptions({
+  name: 'SettingBaseDialogData',
+});
 
 const props = defineProps({
   visible: {
     type: Boolean,
     default: false,
   },
-  webdev: {
+  data: {
     type: Object,
-    default: () => {
-      return {
+    default: {
+      data: {
         sync: false,
-        data: {
-          url: '',
-          username: '',
-          password: ''
-        }
-      }
+        data: { url: '', username: '', password: '' }
+      },
+      type: 'data'
     },
   }
 });
@@ -190,20 +226,10 @@ const formVisible = ref(false);
 const formData = ref({
   webdev: {
     sync: false,
-    data: {
-      url: '',
-      username: '',
-      password: ''
-    }
+    data: { url: '', username: '', password: '' }
   },
-  easyConfig: {
-    type: 'tvbox',
-    url: ''
-  },
-  importData: {
-    type: 'remote',
-    url: ''
-  },
+  easyConfig: { type: 'tvbox', url: '' },
+  completeConfig: { type: 'remote', url: '' },
   clearSeletct: {
     sites: false,
     iptv: false,
@@ -215,10 +241,7 @@ const formData = ref({
     cache: false,
     thumbnail: false,
   },
-  size: {
-    cache: '',
-    thumbnail: '',
-  },
+  size: { cache: 0, thumbnail: 0 },
 });
 const active = reactive({
   clear: {
@@ -244,7 +267,10 @@ const active = reactive({
     setting: false,
   }
 });
-
+const historyList = ref<any>({
+  easyConfig: [],
+  completeConfig: [],
+});
 const emits = defineEmits(['update:visible', 'submit']);
 
 watch(
@@ -258,18 +284,17 @@ watch(
   (val) => {
     formVisible.value = val;
     if (val) {
-      getCacheSize();
-      getThumbnailSize();
+      Promise.all([getHistory('easyConfig'), getHistory('completeConfig')]);
+      Promise.all([getCacheSize(), getThumbnailSize()]);
     };
   },
 );
 watch(
-  () => props.webdev,
+  () => props.data,
   (val) => {
-    const { sync, data } = val;
-    formData.value.webdev.sync = sync;
-    formData.value.webdev.data = { ...data };
-  }
+    formData.value.webdev.sync = val.data.sync;
+    formData.value.webdev.data = cloneDeep(val.data.data);
+  }, { deep: true }
 );
 
 const refreshEmitter = (arryList: string[]) => {
@@ -312,16 +337,68 @@ const refreshEmitter = (arryList: string[]) => {
   }
 };
 
+// 获取历史
+const getHistory = async (type: string) => {
+  try {
+    const res = await fetchHistoryPage({ page: 1, pageSize: 5, type: [type] });
+    if (res.hasOwnProperty('list')) historyList.value[type] = res.list;
+  } catch (err: any) {
+    console.error('Failed to fetch history:', err);
+    MessagePlugin.error(`${t('pages.setting.data.fail')}:${err.message}`);
+  }
+};
+
+// 清除数据
+const clearHistory = async (type: string) => {
+  try {
+    await delHistory({ type });
+    historyList.value[type] = [];
+  } catch (err: any) {
+    console.error('Failed to clear history:', err);
+    MessagePlugin.error(`${t('pages.setting.data.fail')}:${err.message}`);
+  }
+};
+
+// 增加
+const addHistoryItem = async (type: string, data: { [key: string]: string}) => {
+  try {
+    const doc = {
+      date: moment().unix(),
+      relateId: data.relateId,
+      videoName: data.videoName,
+      videoId: data.videoId,
+      type,
+    };
+
+    const isExist = historyList.value[type].some(item => item.videoId === doc.videoId);
+    if (isExist) return;
+
+    await addHistory(doc);
+    await getHistory(type);
+  } catch (err: any) {
+    console.error('Failed to add history:', err);
+    MessagePlugin.error(`${t('pages.setting.data.fail')}:${err.message}`);
+  }
+};
+
+// 填充数据
+const handleHistoryFill = async (type: string, id: string) => {
+  const item = historyList.value[type].find(item => item.id === id);
+  if (!item) return;
+  formData.value[type].url = item.videoId;
+  formData.value[type].type = item.relateId;
+};
+
 // 配置导入
 const importData = async (importType, importMode) => {
   try {
-    let url, type;
-    if (importType === 'easy') {
+    let url, type, host;
+    if (importType === 'easyConfig') {
       url = formData.value.easyConfig.url;
       type = formData.value.easyConfig.type;
     } else {
-      url = formData.value.importData.url;
-      type = formData.value.importData.type;
+      url = formData.value.completeConfig.url;
+      type = formData.value.completeConfig.type;
     };
 
     if (!url) {
@@ -329,12 +406,10 @@ const importData = async (importType, importMode) => {
       return;
     };
 
-    const res = await initDb({
-      url: url,
-      importType,
-      remoteType: type,
-      importMode
-    });
+    try { host = new URL(url).host; } catch { host = url; };
+
+    const res = await initDb({ url, importType, remoteType: type, importMode });
+    await addHistoryItem(importType, { relateId: type, videoName: host, videoId: url });
     refreshEmitter(res?.table);
     MessagePlugin.success(t('pages.setting.data.success'));
   } catch (err) {
@@ -344,19 +419,25 @@ const importData = async (importType, importMode) => {
 };
 
 // 文件事件
-const uploadFileEvent = () => {
-  remote.dialog.showOpenDialog({
-    properties: ['openFile']
-  }).then(result => {
-    if (result.canceled) {
-      console.log('用户取消了选择');
-    } else {
-      console.log('选中的文件路径:', result.filePaths);
-      formData.value.importData.url = result.filePaths[0];
-    }
-  }).catch(err => {
-    console.log('出现错误:', err);
-  });
+const uploadFileEvent = async () => {
+  try {
+    const res = await window.electron.ipcRenderer.invoke('manage-dialog', {
+      action: 'showOpenDialog',
+      config: {
+        properties: ['openFile', 'showHiddenFiles'],
+        filters: [
+          { name: 'Json Files', extensions: ['json'] },
+          { name: 'Text Files', extensions: ['txt'] },
+          { name: 'All Files', extensions: ['*'] }
+        ],
+      },
+    });
+    if (!res || res.canceled || !res.filePaths.length) return;
+    formData.value.completeConfig.url = res.filePaths[0] || '';
+  } catch (err: any) {
+    console.error(`[uploadFileEvent] err:`, err);
+    MessagePlugin.error(`${t('pages.setting.data.fail')}:${err}`);
+  }
 };
 
 // 导出
@@ -371,40 +452,58 @@ const exportData = async () => {
   const str = JSON.stringify(dbData, null, 2);
 
   try {
-    const saveDialogResult = await remote.dialog.showSaveDialog(remote.getCurrentWindow(), {
-      defaultPath: 'config.json',
-      filters: [{ name: 'JSON Files', extensions: ['json'] }],
+    const res = await window.electron.ipcRenderer.invoke('manage-dialog', {
+      action: 'showSaveDialog',
+      config: {
+        defaultPath: `zyfun_config_${moment().format('YYYYMMDD_HHmmss')}.json`,
+        properties: ['showHiddenFiles'],
+        filters: [
+          { name: 'JSON Files', extensions: ['json'] }
+        ],
+      }
+    });
+    if (!res || res.canceled || !res.filePath) return;
+
+    const writeStatus = await window.electron.ipcRenderer.invoke('manage-file', {
+      action: 'write',
+      config: {
+        path: res.filePath,
+        content: str,
+      }
     });
 
-    if (!saveDialogResult.canceled) {
-      const { filePath } = saveDialogResult;
-      const fs = remote.require('fs').promises;
-      await fs.writeFile(filePath, str, 'utf-8');
-      MessagePlugin.success(t('pages.setting.data.success'));
-    }
-  } catch (err) {
-    console.error('Failed to save or open save dialog:', err);
+    if (writeStatus) MessagePlugin.success(t('pages.setting.data.success'));
+    else MessagePlugin.error(t('pages.setting.data.fail'));
+  } catch (err: any) {
+    console.error(`[exportData] err:`, err);
     MessagePlugin.error(`${t('pages.setting.data.fail')}:${err}`);
   }
 };
 
-//  获取 cache 大小
-const getCacheSize = async () => {
-  const { session } = win.webContents;
-  const getSize = await session.getCacheSize() / 1024 / 1024;
-  const formatToMb = getSize.toFixed(2);
-  formData.value.size.cache = formatToMb;
+// 获取 cache 大小
+const getCacheSize = async (): Promise<void> => {
+  const size = await window.electron.ipcRenderer.invoke('manage-session', { action: 'size' });
+  formData.value.size.cache = size;
+};
+
+// 删除 cache
+const delCache = async (): Promise<void> => {
+  await window.electron.ipcRenderer.invoke('manage-session', { action: 'clearCache' });
 };
 
 //  获取 thumbnail 文件夹大小
-const getThumbnailSize = () => {
-  window.electron.ipcRenderer.removeAllListeners("tmpdir-manage-size"); // 移除之前的事件监听器
-  window.electron.ipcRenderer.send('tmpdir-manage', 'size', 'thumbnail');
-  window.electron.ipcRenderer.on("tmpdir-manage-size", (_, data) => {
-    const getSize = data / 1024 / 1024;
-    const formatToMb = getSize.toFixed(2);
-    formData.value.size.thumbnail = formatToMb;
-  });
+const getThumbnailSize = async (): Promise<void> => {
+  const userDataPath = await window.electron.ipcRenderer.invoke('get-app-path', 'userData');
+  const defaultPath = await window.electron.ipcRenderer.invoke('path-join', userDataPath, 'tmp/thumbnail');
+  const size = await window.electron.ipcRenderer.invoke('manage-file', { action: 'size', config: { path: defaultPath }});
+  formData.value.size.thumbnail = size;
+};
+
+// 删除 thumbnail 文件夹
+const delThumbnail = async (): Promise<void> => {
+  const userDataPath = await window.electron.ipcRenderer.invoke('get-app-path', 'userData');
+  const defaultPath = await window.electron.ipcRenderer.invoke('path-join', userDataPath, 'tmp/thumbnail');
+  await window.electron.ipcRenderer.invoke('manage-file', { action: 'rm', config: { path: defaultPath }});
 };
 
 // 清理缓存
@@ -440,19 +539,20 @@ const clearData = async () => {
         emitter.emit('refreshDriveConfig');
         emitter.emit('refreshDriveTable');
       },
-      'history': () => {
+      'history': async () => {
         emitter.emit('refreshHistory');
+        await Promise.all([getHistory('easyConfig'), getHistory('completeConfig')]);
       },
       'star': () => {
         emitter.emit('refreshBinge');
       },
       'cache': async () => {
-        const { session } = win.webContents;
-        await session.clearCache();
+        await delCache();
         await getCacheSize();
       },
       'thumbnail': async () => {
-        await window.electron.ipcRenderer.send('tmpdir-manage', 'rmdir', 'thumbnail');
+        await delThumbnail();
+        await getThumbnailSize();
         emitter.emit('refreshIptvConfig');
       }
     };

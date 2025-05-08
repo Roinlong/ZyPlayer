@@ -10,15 +10,24 @@
 
 # 软件介绍
 
-> 名称新[zyfun]-名称旧[zyplayer]
+> 名称说明 zyfun[新名称 >=3.3.8] zyplayer[老名称 <=3.3.7]
 
-一款采用现代化技术栈开发的高颜值媒体播放器，它基于 `electron-vite` 框架，集成了 `TDesign` UI 组件库与 `Vue3` 全家桶，以清新的薄荷绿为主题，旨在为用户提供流畅的跨平台娱乐体验。
+`zyfun[zyplayer]`是一款免费易用且打造的全功能媒体播放器。它基于`electron-Vite`框架, 结合`TDesign`组件库和`vue3`全家桶, 致力于提供流畅、高效的跨平台娱乐体验。
 
-**重要提醒**: 仅此Github发布，请勿上当受骗；请各位公众号、QQ群、博客的管理者不要费力宣传及引流本软件!
+**重要提醒**: 仅此Github发布，请勿上当受骗；请各位管理者不要费力宣传及引流本软件!
 
 **重要提醒**: 请务必支持正版版权，我们不提倡盗版!
 
 **重要提醒**: 在开始使用前，请务必详读并同意用户协议，确保遵守相关规定!
+
+[![Star History Chart](https://api.star-history.com/svg?repos=Hiram-Wong/ZyPlayer&type=Date)](https://star-history.com/#Hiram-Wong/ZyPlayer&Date)
+
+## 🌴 法律声明与注意事项
+
+- 强烈倡导合法观影，本软件仅作为播放工具，不涉及资源存储或分发。
+- 仅供个人学习交流之用，24小时内请自觉卸载，勿作商业用途。
+- 软件提供播放框架，具体播放源需用户自行配置。
+- 部分灵感来源于[ZY-Player](https://github.com/Hunlongyu/ZY-Player)，图标素材感谢[@fourbeauty]贡献。
 
 <details>
 <summary>展开查看用户协议及免责申明</summary>
@@ -42,19 +51,17 @@
 
 </details>
 
-[![Star History Chart](https://api.star-history.com/svg?repos=Hiram-Wong/ZyPlayer&type=Date)](https://star-history.com/#Hiram-Wong/ZyPlayer&Date)
-
 ## 🎉 功能亮点
 
 - **广泛兼容**：跨平台支持 Windows、Mac、Linux 系统。
 - **深色模式**：适配夜间使用，保护视力。
-- **资源站接入**：轻松管理 json、xml 等格式的 CMS。
-- **IPTV 支持**：无缝播放 m3u、genre 等格式。
+- **资源接入**：轻松管理 json、xml 等格式的 CMS。
+- **IPTV支持**：无缝播放 m3u、genre 等格式。
 - **快捷隐藏**：内置老板键，隐私保护一键到位。
 - **多播放器**：内置多种播放器核心，满足不同需求。
 - **更多内容**: 自行探索...
 
-### 🖼️ 屏幕截图预览
+### 🖼️ 软件预览
 
 <details>
 <summary>展开查看软件截图</summary>
@@ -71,57 +78,48 @@
 
 </details>
 
-## 🌴 法律声明与注意事项
+### 🍿 播放器特性
 
-- 强烈倡导合法观影，本软件仅作为播放工具，不涉及资源存储或分发。
-- 仅供个人学习交流之用，24小时内请自觉卸载，勿作商业用途。
-- 软件提供播放框架，具体播放源需用户自行配置。
-- 部分灵感来源于[ZY-Player](https://github.com/Hunlongyu/ZY-Player)，图标素材感谢[@fourbeauty]贡献。
-
-### 播放器特性概览
-
-- 没有完美的播放器
+- **没有完美的播放器**
 - 如果只有画面没声音 - 一般为没有声轨
 - 如果黑屏有声音 - 一般为播放器不支持`H265[HEVC]`
-- 播放器选择需考虑格式兼容性，如`H264`与`H265`的差异
-- 针对播放失败, 建议切换播放器或者调用系统播放器
-- 播放能力上, 分为西瓜(`H265`兼容性较好)和其他(`H264`兼容性较好)
+- 播放器选择需考虑格式兼容性-不支持`mkv`格式
+- 针对播放失败-建议切换播放器或者调用系统播放器
+- 播放能力-西瓜(`H265`兼容性较好), 其他(`H264`兼容性较好)
 
-### 跨平台说明
+### 💻 跨平台说明
 
 > {appname}为软件名
 
 - **MacOS**:
   - 提供 arm64(苹果芯)、x64(英特尔芯) 及 universal(通用) 三种架构安装包
-  - 日志路径: `~/Library/Logs/{appname}/`
+  - 日志路径: `~/Library/Logs/{appname}/log/`
   - 数据库路径: `~/Library/Application\ Support/{appname}/database/`
   - 插件路径: `~/Library/Application\ Support/{appname}/plugin/`
   - 文件路径: `~/Library/Application\ Support/{appname}/file/`
 - **Linux**:
   - 针对 arm64、x64 架构发行 image、deb、rpm 安装包
-  - 日志路径: `~/.config/{appname}/logs/`
+  - 日志路径: `~/.config/{appname}/log/`
   - 数据库路径: `~/.config/{appname}/database/`
   - 插件路径: `~/.config/{appname}/plugin/`
   - 文件路径: `~/.config/{appname}/file/`
 - **Windows**:
   - 支持 arm64、x64、ia32，以及通用版本
-  - 日志路径: `%USERPROFILE%\AppData\Roaming\{appname}\logs\`
+  - 日志路径: `%USERPROFILE%\AppData\Roaming\{appname}\log\`
   - 数据库路径: `%USERPROFILE%\AppData\Roaming\{appname}\database\`
   - 插件路径: `%USERPROFILE%\AppData\Roaming\{appname}\plugin\`
   - 文件路径: `%USERPROFILE%\AppData\Roaming\{appname}\file\`
 
-## 🛠️ 下载与安装
+## 🛠️ 下载安装
 
 > **最新发布版下载**: 访问 [GitHub Releases页面](https://github.com/Hiram-Wong/ZyPlayer/releases) 获取。
 
-> **最新开发版下载**: 访问 [GitHub Actions页面](https://github.com/Hiram-Wong/ZyPlayer/actions) 获取。
+> **最新开发版下载**: 访问 [GitHub Actions页面](https://github.com/Hiram-Wong/ZyPlayer/actions) 获取, 需登录Github账号。
 
-### macOS 安装问题解决方案
-
-因为软件没有签名，所以会被 macOS 的安全检查所拦下。安装后打开遇到「文件已损坏」的情况，请按如下方式操作：
+### MacOS 安装后打开提示「文件已损坏」
 
 ```bash
-> {appname}为软件名
+> {appname}为软件名, 访问前自行替换[含括号一起替换]
 
 [1] 执行下面命令信任开发者, 会要求输入密码:
     sudo spctl --master-disable
@@ -132,13 +130,13 @@
 ### Linux Appimage桌面快捷方式设置
 
 ```bash
-> {appname}为软件名
+> {appname}为软件名, 访问前自行替换[含括号一起替换]
 
 [1] 选择一张icon图标下载
 [2] 在任意位置新建一个名为{appname}.desktop的文件，并写入如下内容
     [Desktop Entry]
     Name={appname}
-    Exec=/home/xxx/Downloads/{appname}.AppImage  # AppImage程序路径
+    Exec=/home/xxx/Downloads/{appname}-x.x.x.AppImage  # AppImage程序路径
     Icon=/home/xxx/Downloads/{appname}.png  # 图标路径
     Type=Application
     StartupNotify=true
@@ -146,10 +144,33 @@
 [4] 将{appname}.desktop文件复制到/usr/share/applications路径下
 ```
 
+### Linux Appimage运行失败
+
+```bash
+# 报错关键词 Running as root without --no-sandbox is not supported. See https://ccrbug.com/638180.
+./文件名.AppImage --no-shawbox
+# 报错关键词 dlopen()：error loading libfuse.so.2
+sudo apt-get install libfuse2
+# 报错关键词 Exiting GPU process due to errors during initialization
+xhost +
+```
+
+### Linux deb安装失败
+
+```bash
+# 报错关键词 Package libnss3-1d is not installed
+sudo apt-get install libnss3-1d
+# 报错关键词 Package libxss1 is not installed
+sudo apt-get install libxss1
+```
+
 ## 🚗 二次开发
 
-```
-[1] 安装 node.js version18 以上
+> **需遵守开源协议**
+
+### 开发打包
+```shell
+[1] 安装 node.js version18 以上 + yarn 包安装管理工具
 [2] 克隆项目
     git clone https://github.com/Hiram-Wong/ZyPlayer.git
 [3] 进入项目
@@ -162,18 +183,45 @@
 [7] 全局安装electron-vite框架
     yarn add electron-vite -D
 [8] 打包编译发布
-    yarn build:win[mac|linux]
-
-ps:
-  - 同步库说明
-    - sync-fetch: 渲染进程 + webworker线程运行
-    - sync-request: 主进程 + fork线程运行 + tree-kill结束
-  - 兼容win7说明
-    - Electron 23 起不再支持 Win 7/8/8.1, 推荐"electron": "~22.3.27"
-    - Electron 23 以下不支持升级fastif及相关插件, 最高版本为4.x
-    - Electron 23 以下不支持升级cheerio, 最高版本为1.0.0-rc.12
-    - Electron 23 以下puppeteer存在兼容性问题, 推荐"puppeteer-core": "~21.3.8", "puppeteer-in-electron": "^3.0.5"
+    yarn build:win[mac/linux]
 ```
+<details>
+<summary>展开查看依赖说明</summary>
+
+- 部分依赖可能依赖github, 需要科学上网
+    - `.npmrc`启用了淘宝镜像, 部分依赖可能404, 需切换到npm官方镜像
+    - 开发涉及`.npmrc`文件`electron_mirror`和`electron_builder_binaries_mirror`字段
+    - 编译涉及`electron-builder.yml`文件`electronDownload`字段
+- 兼容win7说明
+    - Electron 23 将包含 Chromium 110, 不再支持Windows(7/8/8.1)[点我查看](https://www.electronjs.org/zh/blog/windows-7-to-8-1-deprecation-notice)
+    - Electron 23 起不再支持 Win 7/8/8.1, 推荐`"electron": "~22.3.27"`
+    - Electron 23 以下不支持升级fastif及相关插件, 最高版本为`4.x`
+    - Electron 23 以下不支持升级cheerio, 最高版本为`1.0.0-rc.12`
+    - Electron 23 以下puppeteer存在兼容性问题, 推荐`"puppeteer-core": "~21.3.8", "puppeteer-in-electron": "^3.0.5"`
+- 启用HEVC硬解码说明 [点我查看](https://github.com/StaZhu/enable-chromium-hevc-hardware-decoding/blob/main/README.zh_CN.md)
+- 同步库说明
+    - sync-fetch: 
+        - 渲染进程 + webworker线程运行
+        - 主进程 + fork线程运行
+    - sync-request: 主进程 + fork线程运行
+        - tree-kill结束(普通结束可能结束不干净, 导致游离进程过多)
+        - sync-rpc子进程启动报错(参考[issue](https://github.com/ForbesLindesay/sync-rpc/issues/3))
+- 插件模块说明
+    - `"npm": "7.24.2"` 之后的不再支持调用`npm`命令
+- `monaco-editor`无法粘贴
+    - 方案1: `win.webContents.paste()`, 该方案监听`ctrl+v`会导致普通输入框重复粘贴, 建议监听其他快捷键则正常(改编使用者习惯)
+    - 方案2: `editor.addAction`或`editor.onKeyDown`监听键盘按下事件, 该方案需手动写逻辑, 仅编辑器主体粘贴生效
+    - 方案3: `"monaco-editor": "^0.45.0"`及以下版本, 参考[issue](https://github.com/microsoft/monaco-editor/issues/4855)
+    - 方案4: `Electron`配置`nodeIntegration: true`和`contextIsolation: false`会导致粘贴失效, 配置参数取反
+- `child_process`说明
+    - `windows`换行符为`\r\n`, `mac`和`linux`为`\n`
+    - `windows`执行结果乱码, 需`chcp 65001`设置编码, 如获取目录数据`chcp 65001 | dir`(`|`的作用为执行`dir`继承`chcp 65001`的`utf-8`编码)
+    - `"electron-builder": "^25.1.8"`之后的编译器存在打包后`child_process`启动失败问题
+- 文件操作说明
+    - `FileSystemAccessAPI`受浏览器沙箱限制, 无法访问系统目录
+    - 可以使用`Electron`提供的`dialog`方法配合`fs`进行操作
+
+</details>
 
 ## 📚 数据结构
 
@@ -189,21 +237,25 @@ ps:
   "analyze": [
     {
       "id": "fddfb425-6fd9-0b39-459f-a21f69739a6e", // id唯一值不可重复[uuidv4]
+      "key": "51793af6-c923-5504-85db-0ef686624dec", // key值不建议重复[string] [3.4.0版本启用]
       "name": "Parse", // 名称[string]
       "type": 0, // 类型[number | 0:web-1:json]
       "url": "https://xxx.top/?jx=", // 解析源地址[string]
+      "headers": "", // 请求头[string] 未启用预留 [3.4.0版本启用]
       "isActive": true // 是否启用[boolean | true启用-false禁用]
     }
   ],
   "iptv": [
     {
       "id": "993841fe-5e91-5e5d-35d6-5be81822960b", // id唯一值不可重复[uuidv4]
+      "key": "51793af6-c923-5504-85db-0ef686624dec", // key值不建议重复[string] [3.4.0版本启用]
       "name": "IPTV", // 名称[string]
       "url": "https://xxx.com/m3u/iptv.m3u", // 直播源地址[string]
       "type": "remote", // url格式[string | remote:远程m3u-local本地m3u文件路径-json本地手动文件]
-      "isActive": true, // 是否启用[boolean | true启用-false禁用]
       "epg": "https://epg.112114.eu.org/?ch={name}&date={date}", // 电子节目单地址[string]
-      "logo": "https://epg.112114.eu.org/logo/{name}.png" // 台标地址[string] - 3.3.8启用该参数
+      "logo": "https://epg.112114.eu.org/logo/{name}.png", // 台标地址[string] - 3.3.8启用该参数
+      "headers": "", // 请求头[string] 未启用预留 [3.4.0版本启用]
+      "isActive": true // 是否启用[boolean | true启用-false禁用]
     }
   ],
   "channel": [
@@ -232,6 +284,7 @@ ps:
   "drive": [
     {
       "id": "3293dc45-cf14-9c66-3028-5b7765b240b7",// id唯一值不可重复[uuidv4]
+      "key": "51793af6-c923-5504-85db-0ef686624dec", // key值不建议重复[string] [3.4.0版本启用]
       "name": "alist", // 名称[string]
       "server": "http://alist.xxx.pro/", // 网盘地址[string]
       "showAll": false, // 是否启用[boolean | true显示全部-false显示video]
@@ -331,3 +384,9 @@ ps:
 ```
 
 </details>
+
+## 💰 金主爸爸
+
+[![yxvm_support.png](https://s2.loli.net/2025/04/09/JMyQZUKY2bX4G3q.png)](https://yxvm.com/)
+
+[NodeSupport](https://github.com/NodeSeekDev/NodeSupport)赞助了本项目

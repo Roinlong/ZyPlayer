@@ -1,18 +1,17 @@
 import { is } from '@electron-toolkit/utils';
-import { enable as renoteEnable } from '@electron/remote/main';
 import { attachTitleBarToWindow } from '@electron-uikit/titlebar';
-import { app, BrowserWindow, nativeTheme, shell } from 'electron';
+import { app, BrowserWindow, Menu, MenuItem, MenuItemConstructorOptions, nativeTheme, shell } from 'electron';
 import { register as localshortcutRegister, unregisterAll as localshortcutUnregisterAll } from 'electron-localshortcut';
 import { join } from 'path';
 import url from 'url';
 import { setting } from '@main/core/db/service';
 import logger from '@main/core/logger';
 
-const winPool = {};
-const DEFAULT_WIDTH_MAIN = 1000;
-const DEFAULT_HEIGHT_MAIN = 640;
-const DEFAULT_WIDTH_PLAY = 875;
-const DEFAULT_HEIGHT_PLAY = 550;
+const winPool: { [key: string]: number } = {};
+const DEFAULT_WIDTH_MAIN: number = 1000;
+const DEFAULT_HEIGHT_MAIN: number = 640;
+const DEFAULT_WIDTH_PLAY: number = 875;
+const DEFAULT_HEIGHT_PLAY: number = 550;
 
 const createWin = (name: string, options: { [key: string]: any } ) => {
   const { debug } = globalThis.variable;
@@ -26,7 +25,6 @@ const createWin = (name: string, options: { [key: string]: any } ) => {
     setTimeout(() => win!.reload(), 0);
   } else {
     win = new BrowserWindow(args);
-    renoteEnable(win.webContents);
     attachTitleBarToWindow(win);
 
     win.on('ready-to-show', () => {
@@ -43,18 +41,18 @@ const createWin = (name: string, options: { [key: string]: any } ) => {
       localshortcutRegister(win!, ['CommandOrControl+R'], () => {
         win!.reload();
       });
-      // 粘贴
-      localshortcutRegister(win!, ['CommandOrControl+B'], () => {
-        win!.webContents.paste();
-      });
-      // // 复制
-      // localshortcutRegister(win!, ['CommandOrControl+C'], () => {
-      //   win!.webContents.copy();
-      // });
     });
 
     win.on('close', () => {
       localshortcutUnregisterAll(win!);
+    });
+
+    win.on('enter-full-screen', () => {
+      win!.webContents.send('fullscreen', win!.isFullScreen());
+    });
+
+    win.on('leave-full-screen', () => {
+      win!.webContents.send('fullscreen', win!.isFullScreen());
     });
 
     if (debug) {
@@ -69,6 +67,18 @@ const createWin = (name: string, options: { [key: string]: any } ) => {
         );
       });
     };
+
+    win.webContents.on('context-menu', () => {
+      const menu: Array<MenuItemConstructorOptions | MenuItem> = [
+        { label: '剪切', role: 'cut' },
+        { label: '复制', role: 'copy' },
+        { label: '粘贴', role: 'paste' },
+        { label: '全选', role: 'selectAll' },
+        { type: 'separator' },
+        { label: '刷新', role: 'reload' },
+      ];
+      Menu.buildFromTemplate(menu).popup({ window: win! })
+    })
 
     winPool[name] = win.id;
   }
@@ -86,10 +96,15 @@ const destroyWin = (name: string) => {
 
 const getWin = (name: string) => {
   const id = winPool[name];
-  logger.info(`[winManager][getWin]name:${name} id:${id}`);
+  logger.info(`[winManager][win] name:${name}-id:${id}`);
 
   if (id) return BrowserWindow.fromId(Number(id));
   return null;
+};
+
+const getWinName = (id: number) => {
+  if (typeof id !== 'number') return null;
+  return Object.keys(winPool).filter(key => winPool[key] === id)?.[0] || null;
 };
 
 const getAllWin = () => BrowserWindow.getAllWindows();
@@ -123,8 +138,8 @@ const createMain = async () => {
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: false,
-      nodeIntegration: true,
-      contextIsolation: false,
+      nodeIntegration: false,
+      contextIsolation: true,
       webviewTag: true,
       webSecurity: false,
       spellcheck: false,
@@ -186,8 +201,8 @@ const createPlay = async () => {
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: false,
-      nodeIntegration: true,
-      contextIsolation: false,
+      nodeIntegration: false,
+      contextIsolation: true,
       webSecurity: false,
       spellcheck: false,
       allowRunningInsecureContent: true,
@@ -251,4 +266,4 @@ const saveWindowState = async (name: string) => {
   await setting.update(['windowPosition'], db);
 };
 
-export { closeAllWin, createWin, destroyWin, createMain, createPlay, getAllWin, getWin };
+export { closeAllWin, createWin, destroyWin, createMain, createPlay, getAllWin, getWin, getWinName };

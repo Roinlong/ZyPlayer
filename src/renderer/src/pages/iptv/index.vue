@@ -18,7 +18,7 @@
         <div class="content-wrapper" id="back-top">
           <t-row :gutter="[16, 4]" style="margin-left: -8px; margin-right: -8px">
             <t-col :md="3" :lg="3" :xl="2" :xxl="1" v-for="item in channelList" :key="item.id" class="card"
-              @click="playEvent(item)" @contextmenu="conButtonClick(item, $event)">
+              @click="playEvent(item)" @contextmenu="conButtonClick(item, $event)" @contextmenu.prevent>
               <div class="card-main">
                 <div v-show="iptvConfig.ext.delay && item.delay" class="card-delay-tag">
                   <span v-if="item.delay < 500" class="status-item success">{{ item.delay }}ms</span>
@@ -88,6 +88,7 @@ import 'v3-infinite-loading/lib/style.css';
 import lazyImg from '@/assets/lazy.png';
 
 import { ContextMenu, ContextMenuItem } from '@imengyu/vue3-context-menu';
+import moment from 'moment';
 import PQueue from 'p-queue';
 import { MessagePlugin } from 'tdesign-vue-next';
 import InfiniteLoading from 'v3-infinite-loading';
@@ -98,6 +99,7 @@ import { t } from '@/locales';
 import { usePlayStore, useSettingStore } from '@/store';
 
 import { fetchIptvActive, fetchChannelPage, delChannel, putIptvDefault } from '@/api/iptv';
+import { fetchHistoryData, putHistoryData } from '@/utils/common/chase';
 import { checkChannel, stopCheckChannel } from '@/utils/channel';
 import emitter from '@/utils/emitter';
 import { checkIpVersion, copyToClipboardApi } from '@/utils/tool';
@@ -271,24 +273,49 @@ const changeClassEvent = (id: string) => {
 };
 
 // 播放
-const playEvent = (item) => {
+const playEvent = async (item) => {
   isVisible.loading = true;
 
   try {
+    const site: any = iptvConfig.value.default;
     const playerMode = storePlayer.getSetting.playerMode;
     if (playerMode.type === 'custom') {
-      window.electron.ipcRenderer.send('call-player', playerMode.external, item.url);
+      window.electron.ipcRenderer.invoke('call-player', { path: playerMode.external, url: item.url });
+      // 记录播放记录
+      const { id: vod_id, logo: vod_pic, name: vod_name, url: vod_url, group: type_name } = item;
+      const historyRes = await fetchHistoryData(site.key, vod_url, ['iptv']);
+      const doc = {
+        date: moment().unix(),
+        type: 'iptv',
+        relateId: site.key,
+        siteSource: type_name,
+        playEnd: false,
+        videoId: vod_id,
+        videoImage: vod_pic,
+        videoName: vod_name,
+        videoIndex: `${vod_name}$${vod_url}`,
+        watchTime: 0,
+        duration: 0,
+        skipTimeInStart: 0,
+        skipTimeInEnd: 0,
+      };
+
+      if (historyRes.code === 0 && historyRes.status) {
+        putHistoryData('put', doc, historyRes.data.id);
+      } else {
+        putHistoryData('add', doc, null);
+      }
     } else {
       const { epg, markIp, logo } = iptvConfig.value.ext;
       storePlayer.updateConfig({
         type: 'iptv',
         status: true,
         data: {
-          info: item,
-          ext: { epg, markIp, logo },
+          info: { ...item },
+          ext: { epg, markIp, logo, site, setting: storePlayer.setting },
         },
       });
-      window.electron.ipcRenderer.send('open-play-win', item.name);
+      window.electron.ipcRenderer.send('open-win', { action: 'play' });
     }
   } catch (err) {
     console.error(`[iptv][playEvent][error]`, err);
@@ -419,9 +446,14 @@ const defaultConf = () => {
   infiniteId.value++;
 };
 
+const refreshConf = async () => {
+  console.log('[iptv][bus][refresh]');
+  defaultConf();
+  await getSetting();
+};
+
 const changeConf = async (id: string) => {
   console.log(`[iptv] change source: ${id}`);
-
   try {
     defaultConf();
     active.value.class = '全部';
@@ -433,12 +465,6 @@ const changeConf = async (id: string) => {
   } finally {
     isVisible.lazyload = true;
   }
-};
-
-const refreshConf = async () => {
-  console.log('[iptv][bus][refresh]');
-  defaultConf();
-  await getSetting();
 };
 
 // 右键

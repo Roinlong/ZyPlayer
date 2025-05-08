@@ -13,17 +13,21 @@ import playNextPlugin from './plugins/playNext';
 import { playerStorage } from '../../utils/tool';
 import { publicColor, publicIcons } from '../../utils/static';
 
+import 'xgplayer/es/plugins/danmu/index.css';
+import './css/index.css';
+
 class XgPlayerAdapter {
   player: XgPlayer | null = null;
   options: { [key: string]: any } = {
     url: '',
     autoplay: true,
-    pip: true,
+    pip: { index: 2, showIcon: true },
     cssFullscreen: false,
     startTime: 0,
+    volume: { index: 3, default: 1, showValueLabel: true },
     playbackRate: {
-      list: [2, 1.5, 1.25, { rate: 1, iconText: { zh: '倍速' } }, 0.75, 0.5],
-      index: 3,
+      list: [2, 1.5, 1.25, { rate: 1, iconText: { 'zh-cn': '倍速', en: 'Speed' } }, 0.75, 0.5],
+      index: 4,
     },
     time: { index: 2 },
     icons: {
@@ -151,7 +155,7 @@ class XgPlayerAdapter {
     delete options.type;
     delete options.headers;
     // 音量
-    options.volume =
+    options.volume.default =
       playerStorage.get('volume') === null || playerStorage.get('volume') === undefined
         ? 1
         : playerStorage.get('volume');

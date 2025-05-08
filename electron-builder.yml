@@ -5,6 +5,8 @@ appId: com.zyfun.player
 # 应用程序的产品名称
 productName: zyfun
 copyright: Copyright © 2023 zyfun Team Inc.
+# 禁用 asar 打包
+"asar": true
 # 构建资源所在的目录
 directories:
   buildResources: build
@@ -21,7 +23,7 @@ asarUnpack:
   - resources/**
 electronLanguages: ['en', 'zh-TW', 'zh-CN', 'en-US', 'en-GB']
 # afterPack: build/hook/removeLocales.js
-afterSign: build/hook/notarize.js
+# afterSign: build/hook/notarize.js
 # Windows 平台配置
 win:
   # 可执行文件名
@@ -127,5 +129,5 @@ publish:
   provider: github
   owner: "Hiram-Wong"
   repo: "ZyPlayer"
-electronDownload:
-  mirror: https://npmmirror.com/mirrors/electron/
+# electronDownload:
+#   mirror: https://npmmirror.com/mirrors/electron/

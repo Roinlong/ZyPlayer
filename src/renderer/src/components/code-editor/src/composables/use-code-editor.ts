@@ -1,4 +1,4 @@
-import throttle from 'lodash/throttle';
+import { throttle } from 'lodash-es';
 import { onBeforeMount, onMounted, ref, SetupContext, toRefs, nextTick, watch } from 'vue';
 import * as monacoModule from 'monaco-editor';
 import jsonWorker from 'monaco-editor/esm/vs/language/json/json.worker?worker';
@@ -25,15 +25,15 @@ export function useCodeEditor(props: CodeEditorProps, ctx: SetupContext) {
     expandCommentIcon,
   } = toRefs(props);
 
-  let monaco: any;
-  let editor: any;
-  let diffEditor: any;
+  let monaco: typeof monacoModule = monacoModule;
+  let editor: monacoModule.editor.IStandaloneCodeEditor;
+  let diffEditor: monacoModule.editor.IStandaloneDiffEditor;
   let commentViewZones: Array<{ lineNumber: number; id: string }> = [];
   let heightMap: Map<number, number> = new Map();
   let commentWidgets: Array<{ lineNumber: number; widget: any }> = [];
   let currentDecorations: string[] = [];
   let currentLineDecoration: string[] = [];
-  let modifyValueFromInner = false;
+  let modifyValueFromInner: boolean = false;
 
   watch(editorDecorations, refreshDecorations, { deep: true });
   watch(
@@ -48,6 +48,7 @@ export function useCodeEditor(props: CodeEditorProps, ctx: SetupContext) {
     options,
     () => {
       updateLanguage();
+      updateTheme();
       updateOptions();
     },
     { deep: true },
@@ -65,7 +66,6 @@ export function useCodeEditor(props: CodeEditorProps, ctx: SetupContext) {
 
   onMounted(async () => {
     if (typeof window !== 'undefined') {
-      monaco = monacoModule;
       self.MonacoEnvironment = {
         getWorker(_: any, label: string) {
           if (label === 'json') {
@@ -101,7 +101,7 @@ export function useCodeEditor(props: CodeEditorProps, ctx: SetupContext) {
       initDiffEditor();
     }
 
-    if (!options.value['theme']) {
+    if (!['vs', 'vs-dark'].includes(options.value['theme'])) {
       monaco.editor.setTheme('vs');
     }
 
@@ -113,24 +113,7 @@ export function useCodeEditor(props: CodeEditorProps, ctx: SetupContext) {
     if (!editor) {
       editor = monaco.editor.create(editorEl.value, options.value);
       editor.setModel(monaco.editor.createModel(modelValue.value, options.value['language']));
-      editor.addAction({
-        id: "editor.action.clipboardPasteAction",
-        label: "PasteCustom",
-        keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyV],
-        contextMenuGroupId: "9_cutcopypaste",
-        contextMenuOrder: 1.5,
-        run: async (editor) => {
-          const text = await navigator.clipboard.readText();
-          const selection = editor.getSelection();
-          const op = {
-            identifier: { major: 1, minor: 1 },
-            range: selection,
-            text: text,
-            forceMoveMarkers: true,
-          };
-          editor.executeEdits("customPaste", [op]);
-        },
-      });
+
       ctx.emit('afterEditorInit', editor);
       ctx.emit('monacoObject', monaco);
 
@@ -150,28 +133,6 @@ export function useCodeEditor(props: CodeEditorProps, ctx: SetupContext) {
         modified: monaco.editor.createModel(modelValue.value, options.value['language']),
       });
 
-      const originalEditor = diffEditor.getOriginalEditor();
-      const modifiedEditor = diffEditor.getModifiedEditor();
-      [originalEditor, modifiedEditor].forEach((item) => {
-        item.addAction({
-          id: "editor.action.clipboardPasteAction",
-          label: "PasteCustom",
-          keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyV],
-          contextMenuGroupId: "9_cutcopypaste",
-          contextMenuOrder: 1.5,
-          run: async (editor) => {
-            const text = await navigator.clipboard.readText();
-            const selection = editor.getSelection();
-            const op = {
-              identifier: { major: 1, minor: 1 },
-              range: selection,
-              text: text,
-              forceMoveMarkers: true,
-            };
-            editor.executeEdits("customPaste", [op]);
-          },
-        });
-      });
       ctx.emit('afterEditorInit', diffEditor);
       ctx.emit('monacoObject', monaco);
     }
@@ -189,14 +150,14 @@ export function useCodeEditor(props: CodeEditorProps, ctx: SetupContext) {
     if (!editor || !editor.getModel()) {
       return;
     }
-    editor.getModel().setValue(modelValue.value);
+    editor.getModel()!.setValue(modelValue.value);
   }
 
   function setDiffEditorValue() {
     if (!diffEditor || !diffEditor.getModel()) {
       return;
     }
-    diffEditor.getModel().modified?.setValue(modelValue.value);
+    diffEditor.getModel()!.modified?.setValue(modelValue.value);
   }
 
   function handleAutoHeight(): void {
@@ -208,11 +169,11 @@ export function useCodeEditor(props: CodeEditorProps, ctx: SetupContext) {
   }
 
   function setValueEmitter(): void {
-    let model;
+    let model: monacoModule.editor.ITextModel | null = null;
     if (editor) {
       model = editor.getModel();
     } else if (diffEditor) {
-      model = diffEditor.getModel().modified;
+      model = diffEditor.getModel()!.modified;
     }
 
     model?.onDidChangeContent(
@@ -231,19 +192,26 @@ export function useCodeEditor(props: CodeEditorProps, ctx: SetupContext) {
       return;
     }
 
-    diffEditor.getModel().original?.setValue(originalText.value);
+    diffEditor.getModel()!.original?.setValue(originalText.value);
   }
 
   function updateLanguage() {
     const language = options.value.language;
     if (editor) {
       if (mode.value === 'normal' || mode.value === 'review') {
-        monaco.editor.setModelLanguage(editor.getModel(), language);
+        monaco.editor.setModelLanguage(editor.getModel()!, language);
       } else if (mode.value === 'diff') {
-        const model = diffEditor.getModel();
+        const model = diffEditor.getModel()!;
         monaco.editor.setModelLanguage(model.modified, language);
         monaco.editor.setModelLanguage(model.original, language);
       }
+    }
+  }
+
+  function updateTheme() {
+    const theme = options.value.theme;
+    if (!['vs', 'vs-dark'].includes(theme)) {
+      monaco.editor.setTheme(theme);
     }
   }
 

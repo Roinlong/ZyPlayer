@@ -6,6 +6,7 @@
  * @date 2024-10-25T17:46:29+08:00
  */
 
+import workerpool from 'workerpool';
 import { category, detail, home, homeVod, init, play, proxy, search, runMain } from './drpy3';
 
 const drpyWork = (parms: { [key: string]: any }) => {
@@ -63,10 +64,10 @@ const drpyWork = (parms: { [key: string]: any }) => {
   return res;
 };
 
-process.on('message', (message: { [key: string]: any }) => {
+const siteDrpyWork = async (message: { [key: string]: any }, args: { [key: string]: any }) => {
   const variable = {
-    timeout: parseInt(process.argv?.[3]) || 5000,
-    debug: JSON.parse((process.argv?.[4] || 'false')),
+    timeout: parseInt(args.timeout) || 5000,
+    debug: JSON.parse((args.debug || 'false')),
   };
   globalThis.variable = variable;
   let res;
@@ -80,6 +81,7 @@ process.on('message', (message: { [key: string]: any }) => {
     console.log(`[t3][worker][child][error]${err.message}`);
     console.error(err);
   }
+  return res;
+};
 
-  process.send!(res);
-});
+workerpool.worker({ siteDrpyWork });
