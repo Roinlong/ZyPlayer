@@ -1,6 +1,6 @@
-import privacyPolicyMD from '@/assets/md/en_US/privacy-policy.md?raw';
-import thumbnailFfmpegMD from '@/assets/md/en_US/thumbnail-ffmpeg.md?raw';
-import customPlayerMD from '@/assets/md/en_US/custom-player.md?raw';
+import privacyPolicyMD from './md/privacy-policy.md?raw';
+import thumbnailFfmpegMD from './md/thumbnail-ffmpeg.md?raw';
+import customPlayerMD from './md/custom-player.md?raw';
 
 export default {
   thumbanilFfmpeg: {
@@ -20,5 +20,11 @@ export default {
     quitTip: 'Auto quit app after 5 seconds',
     confirm: 'Aagree',
     cancel: 'Disagree',
+  },
+  label: {
+    copy: 'Copy',
+    lang: 'Lang',
+    copySuccess: 'Copy success',
+    copyError: 'Copy failed, please check your browser settings',
   },
 };

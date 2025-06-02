@@ -1,6 +1,6 @@
-import privacyPolicyMD from '@/assets/md/zh_CN/privacy-policy.md?raw';
-import thumbnailFfmpegMD from '@/assets/md/zh_CN/thumbnail-ffmpeg.md?raw';
-import customPlayerMD from '@/assets/md/zh_CN/custom-player.md?raw';
+import privacyPolicyMD from './md/privacy-policy.md?raw';
+import thumbnailFfmpegMD from './md/thumbnail-ffmpeg.md?raw';
+import customPlayerMD from './md/custom-player.md?raw';
 
 export default {
   thumbanilFfmpeg: {
@@ -20,5 +20,11 @@ export default {
     quitTip: '5秒后自动退出软件',
     confirm: '同意并继续',
     cancel: '不同意',
+  },
+  label: {
+    copy: '复制',
+    lang: '语言',
+    copySuccess: '复制成功',
+    copyError: '复制失败，请检查您的浏览器设置',
   },
 };
